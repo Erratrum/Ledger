@@ -1,6 +1,6 @@
 {
-  "name": "Kash – Personal Budget",
-  "short_name": "Kash",
+  "name": "LegdeR – Personal Budget",
+  "short_name": "LegdeR",
   "description": "Simple personal budgeting app",
   "start_url": "./index.html",
   "display": "standalone",
