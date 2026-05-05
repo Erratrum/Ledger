@@ -186,10 +186,15 @@ canvas{display:block;}
       <div class="hdr-total display" id="hdrTotal">£0</div>
       <div class="hdr-spending" id="hdrSpending"></div>
     </div>
-    <div class="month-nav">
-      <button class="mnbtn" id="prevM">‹</button>
-      <span class="mlbl" id="mLabel"></span>
-      <button class="mnbtn" id="nextM">›</button>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+      <div class="month-nav">
+        <button class="mnbtn" id="prevM">‹</button>
+        <span class="mlbl" id="mLabel"></span>
+        <button class="mnbtn" id="nextM">›</button>
+      </div>
+      <button onclick="renderCurrencyPills();openO('optionsOverlay')" style="background:none;border:none;cursor:pointer;padding:2px 6px;opacity:0.4;display:flex;align-items:center;justify-content:center;" title="Settings">
+        <svg viewBox="0 0 100 100" width="15" height="15" xmlns="http://www.w3.org/2000/svg" id="gearIcon"></svg>
+      </button>
     </div>
   </header>
 
@@ -233,25 +238,65 @@ canvas{display:block;}
 
   <!-- TRENDS -->
   <div class="page" id="tab-trends">
-    <div class="card">
-      <div class="card-title">This Month — Spend by Category</div>
-      <canvas id="pieChart" height="200"></canvas>
-      <div id="pieLegend" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;"></div>
+    <!-- Sub-tabs — same style as main tabs -->
+    <div style="display:flex;gap:2px;margin-bottom:12px;border-bottom:1px solid var(--border);">
+      <button id="subtab-categories" onclick="setSubtab('categories')" style="flex:1;background:none;border:none;border-bottom:2px solid var(--accent);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:9px 2px;cursor:pointer;margin-bottom:-1px;">Categories</button>
+      <button id="subtab-vendors" onclick="setSubtab('vendors')" style="flex:1;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:9px 2px;cursor:pointer;margin-bottom:-1px;">Vendors</button>
     </div>
-    <div class="card">
-      <div class="card-title">Monthly Spend by Reason — stacked</div>
-      <canvas id="stackChart" height="200"></canvas>
-      <div id="stackLegend" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;"></div>
-    </div>
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <div class="card-title" style="margin-bottom:0;">Category Over Time</div>
-        <select class="proj-sel" id="catTrendSel" onchange="renderTrends()">
-          <option value="">All categories</option>
-        </select>
+
+    <!-- CATEGORIES sub-page -->
+    <div id="subtab-categories-content">
+      <div class="card">
+        <div class="card-title">This Month — Spend by Category</div>
+        <canvas id="pieChart" height="200"></canvas>
+        <div id="pieLegend" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;"></div>
       </div>
-      <canvas id="catTrendChart" height="140"></canvas>
-      <div id="catTrendLegend" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;"></div>
+      <div class="card">
+        <div class="card-title">Monthly Spend by Category — Stacked</div>
+        <canvas id="stackChart" height="200"></canvas>
+        <div id="stackLegend" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;"></div>
+      </div>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <div class="card-title" style="margin-bottom:0;">Category Spend Over Time</div>
+          <select class="proj-sel" id="catTrendSel" onchange="renderTrends()">
+            <option value="">All categories</option>
+          </select>
+        </div>
+        <canvas id="catTrendChart" height="140"></canvas>
+        <div id="catTrendLegend" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;"></div>
+      </div>
+    </div>
+
+    <!-- VENDORS sub-page -->
+    <div id="subtab-vendors-content" style="display:none;">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <div class="card-title" style="margin-bottom:0;">Vendor Breakdown</div>
+          <div style="display:flex;gap:4px;" id="vendorBreakdownPeriod" data-value="all">
+            <button onclick="setVendorPeriod('month',this)" style="background:var(--s2);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:600;padding:4px 10px;cursor:pointer;">This month</button>
+            <button onclick="setVendorPeriod('all',this)" style="background:var(--accent);border:1px solid var(--accent);border-radius:6px;color:#fff;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:600;padding:4px 10px;cursor:pointer;">All time</button>
+          </div>
+        </div>
+        <div style="font-size:9px;color:var(--muted);margin-bottom:8px;">Tap a bar to see trend below</div>
+        <canvas id="vendorBarChart" height="220"></canvas>
+        <div style="display:flex;justify-content:space-between;margin-top:6px;">
+          <div style="display:flex;align-items:center;gap:4px;font-size:9px;color:var(--muted)"><div style="width:8px;height:8px;border-radius:2px;background:#a78bfa"></div>Spend</div>
+          <div style="display:flex;align-items:center;gap:4px;font-size:9px;color:var(--muted)"><div style="width:8px;height:8px;border-radius:2px;background:#60a5fa"></div>Visits</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title" id="vendorTrendTitle">Vendor Spend Over Time</div>
+        <canvas id="vendorTrendChart" height="140"></canvas>
+        <div id="vendorSelectedDelta" style="display:none;margin-top:10px;padding:10px 12px;background:var(--s2);border-radius:8px;display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:11px;color:var(--muted);" id="vendorDeltaLabel"></span>
+          <span style="font-size:13px;font-weight:600;" id="vendorDeltaValue"></span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Biggest Change vs Last Month</div>
+        <div id="vendorDelta"></div>
+      </div>
     </div>
   </div>
 
@@ -267,15 +312,15 @@ canvas{display:block;}
       </select>
     </div>
     <div class="sav-hero">
-      <div class="sav-cell" id="curLiqCell">
-        <div class="sav-lbl">Spending Account</div>
-        <div class="sav-val display" id="curLiqVal">£0</div>
-        <div style="font-size:9px;color:var(--muted);margin-top:3px;">current balance</div>
-      </div>
       <div class="sav-cell">
         <div class="sav-lbl">Avg Monthly Save</div>
         <div class="sav-val display" id="avgSaveVal">£0</div>
         <div style="font-size:9px;color:var(--muted);margin-top:3px;">excl. one-offs</div>
+      </div>
+      <div class="sav-cell">
+        <div class="sav-lbl">Avg Monthly Save</div>
+        <div class="sav-val display" id="avgSaveValIncl">£0</div>
+        <div style="font-size:9px;color:var(--muted);margin-top:3px;">incl. one-offs</div>
       </div>
     </div>
     <div class="proj-cards">
@@ -324,16 +369,7 @@ canvas{display:block;}
       <canvas id="liqLineChart" height="150"></canvas>
       <div id="liqChartLegend" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;"></div>
     </div>
-    <div class="card">
-      <div class="card-title">Data & Backup</div>
-      <div id="storageStatus" style="font-size:10px;color:var(--muted);margin-bottom:12px;padding:8px 10px;background:var(--s2);border-radius:8px;"></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-        <button class="btn" onclick="exportData()" style="background:var(--s2);color:var(--text);padding:12px;font-size:11px;">↓ Export JSON</button>
-        <button class="btn" onclick="document.getElementById('importFile').click()" style="background:var(--s2);color:var(--text);padding:12px;font-size:11px;">↑ Import JSON</button>
-      </div>
-      <input type="file" id="importFile" accept=".json" style="display:none;" onchange="importData(event)"/>
-      <div style="font-size:9px;color:var(--dim);margin-top:8px;line-height:1.6;">Export saves everything — transactions, liquidity snapshots, reasons, and vendors. Import fully restores from a backup. Do this before updating the app.</div>
-    </div>
+    <!-- data backup moved to options menu -->
   </div>
 
   <!-- ACCOUNTS -->
@@ -547,9 +583,36 @@ canvas{display:block;}
   </div>
 </div>
 
+<!-- OPTIONS -->
+<div class="overlay" id="optionsOverlay">
+  <div class="sheet">
+    <div class="s-handle"></div>
+    <div class="s-title display">Options</div>
+    <div class="fg">
+      <label class="fl">Currency Symbol</label>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;" id="currencyPills"></div>
+      <div style="display:flex;gap:6px;margin-top:8px;">
+        <input class="fi" id="customCurrencyIn" type="text" placeholder="custom…" maxlength="3" style="width:90px;padding:8px 10px;font-size:14px;"/>
+        <button class="btn" style="flex:1;padding:10px;font-size:12px;" onclick="setCustomCurrency()">Set</button>
+      </div>
+    </div>
+    <div class="card" style="margin-top:4px;">
+      <div class="card-title">Data & Backup</div>
+      <div id="storageStatus" style="font-size:10px;color:var(--muted);margin-bottom:12px;padding:8px 10px;background:var(--s2);border-radius:8px;"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <button class="btn" onclick="exportData()" style="background:var(--s2);color:var(--text);padding:12px;font-size:11px;">↓ Export JSON</button>
+        <button class="btn" onclick="document.getElementById('importFile').click()" style="background:var(--s2);color:var(--text);padding:12px;font-size:11px;">↑ Import JSON</button>
+      </div>
+      <input type="file" id="importFile" accept=".json" style="display:none;" onchange="importData(event)"/>
+      <div style="font-size:9px;color:var(--dim);margin-top:8px;line-height:1.6;">Export saves everything. Import fully restores from backup.</div>
+    </div>
+    <button class="btn sec" onclick="closeO('optionsOverlay')" style="margin-top:4px;">Close</button>
+  </div>
+</div>
+
 <script>
 // ── STORAGE ──────────────────────────────────────────────────────────────────
-const K_TXN='ldgr_txns_v2',K_LIQ='ldgr_liq_v1',K_REA='ldgr_reas_v1',K_VEN='ldgr_vens_v1',K_CUR='ldgr_curl_v1',K_ACC='ldgr_acc_v1',K_XFR='ldgr_xfr_v1';
+const K_TXN='ldgr_txns_v2',K_LIQ='ldgr_liq_v1',K_REA='ldgr_reas_v1',K_VEN='ldgr_vens_v1',K_CUR='ldgr_curl_v1',K_ACC='ldgr_acc_v1',K_XFR='ldgr_xfr_v1',K_SYM='ldgr_sym_v1';
 let txns=JSON.parse(localStorage.getItem(K_TXN)||'[]');
 let liqData=JSON.parse(localStorage.getItem(K_LIQ)||'[]');
 let curLiq=parseFloat(localStorage.getItem(K_CUR)||'0');
@@ -557,6 +620,7 @@ let reasons=JSON.parse(localStorage.getItem(K_REA)||'null')||defaultReasons();
 let vendors=JSON.parse(localStorage.getItem(K_VEN)||'[]');
 let accounts=JSON.parse(localStorage.getItem(K_ACC)||'null')||defaultAccounts();
 let transfers=JSON.parse(localStorage.getItem(K_XFR)||'[]');
+let currencySymbol=localStorage.getItem(K_SYM)||'£';
 
 function defaultAccounts(){return[
   {id:'spending',name:'Spending',balance:0,notes:'Main spending account',isSpending:true},
@@ -590,9 +654,11 @@ const saveV=()=>persist(K_VEN,vendors);
 const saveC=()=>localStorage.setItem(K_CUR,curLiq);
 const saveA=()=>persist(K_ACC,accounts);
 const saveX=()=>persist(K_XFR,transfers);
+const saveSym=()=>localStorage.setItem(K_SYM,currencySymbol);
 
 // ── UTILS ────────────────────────────────────────────────────────────────────
-const fmtP=(n,d=0)=>'£'+Math.abs(n).toLocaleString('en-GB',{minimumFractionDigits:d,maximumFractionDigits:d});
+const fmtP=(n,d=0)=>currencySymbol+Math.abs(n).toLocaleString('en-GB',{minimumFractionDigits:d,maximumFractionDigits:d});
+const fmtSplit=(n,mainSize,penceSize)=>{const abs=Math.abs(n);const sign=n<0?'-':'';const pounds=Math.floor(abs).toLocaleString('en-GB');const pence=String(Math.round((abs%1)*100)).padStart(2,'0');return`${sign}${currencySymbol}<span style="font-size:${mainSize}">${pounds}</span><span style="font-size:${penceSize};opacity:0.7">.${pence}</span>`;};
 const fmtPs=(n)=>(n<0?'-':'')+fmtP(Math.abs(n));
 const fmtP2=(n)=>fmtP(n,2);
 function mkey(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}
@@ -634,7 +700,7 @@ function renderAll(){
 }
 function renderTab(){
   if(currentTab==='calendar')renderCalendar();
-  else if(currentTab==='trends')renderTrends();
+  else if(currentTab==='trends'){if(currentSubtab==='vendors')renderVendors();else renderTrends();}
   else if(currentTab==='savings')renderSavings();
   else if(currentTab==='accounts')renderAccounts();
   else renderHistory();
@@ -644,12 +710,12 @@ function renderHeader(){
   const totalAssets=accounts.reduce((s,a)=>s+a.balance,0);
   const spending=accounts.find(a=>a.isSpending);
   const el=document.getElementById('hdrTotal');
-  el.textContent=fmtPs(totalAssets);
+  el.innerHTML=fmtSplit(totalAssets,'20px','13px');
   el.style.color=totalAssets>=0?'var(--text)':'var(--danger)';
   const sp=document.getElementById('hdrSpending');
   if(spending){
     if(accounts.length>1){
-      sp.innerHTML=`<span style="color:var(--muted);font-size:10px;font-family:'JetBrains Mono',monospace;font-weight:600;letter-spacing:.05em;">SPENDING</span> <span style="color:${spending.balance>=0?'var(--regular)':'var(--danger)'}">${fmtPs(spending.balance)}</span>`;
+      sp.innerHTML=`<span style="color:var(--muted);font-size:10px;font-family:'JetBrains Mono',monospace;font-weight:600;letter-spacing:.05em;">SPENDING</span> <span style="color:${spending.balance>=0?'var(--regular)':'var(--danger)'}">${fmtSplit(spending.balance,'14px','10px')}</span>`;
     } else {
       // Only one account — just show it as the main figure
       sp.textContent='';
@@ -865,34 +931,45 @@ function drawPie(cmap,usedArr){
   const entries=Object.entries(totals).sort((a,b)=>b[1]-a[1]);
   const total=entries.reduce((s,e)=>s+e[1],0);
 
-  // Store slice hit areas for click detection
+  const selR=document.getElementById('catTrendSel').value;
   canvas._slices=[];
   const cx=W/2,cy=H/2-10,r=Math.min(cx,cy)-20;
   let angle=-Math.PI/2;
   entries.forEach(([reason,val])=>{
     const slice=(val/total)*Math.PI*2;
     const startA=angle,endA=angle+slice;
+    const isSelected=!selR||reason===selR;
+    ctx.globalAlpha=isSelected?1:0.2;
     ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,startA,endA);ctx.closePath();
     ctx.fillStyle=cmap[reason]||'#6b6b88';ctx.fill();
     ctx.strokeStyle='#0a0a0f';ctx.lineWidth=2;ctx.stroke();
     canvas._slices.push({reason,startA,endA,cx,cy,r});
     angle+=slice;
   });
+  ctx.globalAlpha=1;
 
   ctx.beginPath();ctx.arc(cx,cy,r*0.5,0,Math.PI*2);ctx.fillStyle='#12121a';ctx.fill();
   ctx.fillStyle='#e8e8f0';ctx.font='700 14px Fraunces,serif';ctx.textAlign='center';ctx.textBaseline='middle';
-  ctx.fillText('£'+Math.round(total),cx,cy-6);
-  ctx.font='500 9px JetBrains Mono,monospace';ctx.fillStyle='#6b6b88';
-  ctx.fillText('total',cx,cy+10);
+  if(selR){
+    const selVal=totals[selR]||0;
+    ctx.fillText(currencySymbol+Math.round(selVal),cx,cy-6);
+    ctx.font='500 9px JetBrains Mono,monospace';ctx.fillStyle='#6b6b88';
+    ctx.fillText(Math.round(selVal/total*100)+'%',cx,cy+10);
+  } else {
+    ctx.fillText(currencySymbol+Math.round(total),cx,cy-6);
+    ctx.font='500 9px JetBrains Mono,monospace';ctx.fillStyle='#6b6b88';
+    ctx.fillText('total',cx,cy+10);
+  }
   ctx.textBaseline='alphabetic';
 
-  document.getElementById('pieLegend').innerHTML=entries.map(([r,v])=>`
-    <div style="display:flex;align-items:center;gap:4px;font-size:9px;color:var(--muted);cursor:pointer;" onclick="filterCatTrend('${r}')">
+  document.getElementById('pieLegend').innerHTML=entries.map(([r,v])=>{
+    const isSelected=!selR||r===selR;
+    return`<div style="display:flex;align-items:center;gap:4px;font-size:9px;color:var(--muted);cursor:pointer;opacity:${isSelected?1:0.35};transition:opacity .15s;" onclick="filterCatTrend('${r}')">
       <div style="width:8px;height:8px;border-radius:50%;background:${cmap[r]||'#6b6b88'};flex-shrink:0"></div>
-      ${rLabel(r)} <span style="color:var(--text);margin-left:2px">${Math.round(v/total*100)}%</span>
-    </div>`).join('');
+      ${rLabel(r)} <span style="color:${isSelected?'var(--text)':'var(--muted)'};margin-left:2px">${Math.round(v/total*100)}%</span>
+    </div>`;
+  }).join('');
 
-  // Click handler on pie to filter category trend
   canvas.onclick=(e)=>{
     const rect=canvas.getBoundingClientRect();
     const mx=(e.clientX-rect.left)*(canvas.width/dpr/rect.width);
@@ -900,20 +977,20 @@ function drawPie(cmap,usedArr){
     const {cx,cy,r}=canvas._slices[0]||{};
     if(!cx)return;
     const dx=mx-cx,dy=my-cy,dist=Math.sqrt(dx*dx+dy*dy);
-    if(dist<r*0.5||dist>r)return; // inside hole or outside
+    if(dist<r*0.5||dist>r){filterCatTrend('');return;}
     let a=Math.atan2(dy,dx);
     for(const sl of canvas._slices){
       let s=sl.startA,en=sl.endA;
-      // normalize
       if(a<s-0.001)a+=Math.PI*2;
       if(a>=s&&a<en){filterCatTrend(sl.reason);return;}
     }
+    filterCatTrend('');
   };
 }
 
 function filterCatTrend(reasonId){
   const sel=document.getElementById('catTrendSel');
-  sel.value=(sel.value===reasonId)?'':reasonId;
+  sel.value=(reasonId===''||sel.value===reasonId)?'':reasonId;
   renderTrends();
 }
 
@@ -921,9 +998,9 @@ function drawCatTrend(months,used,cmap){
   const{ctx,W,H}=setupCanvas('catTrendChart',140);
   const filterR=document.getElementById('catTrendSel').value;
   const toShow=filterR?[filterR]:used;
-  const pad={t:14,b:22,l:8,r:8},cW=W-pad.l-pad.r,cH=H-pad.t-pad.b;
+  const pad={t:14,b:22,l:28,r:8};
+  const cH=H-pad.t-pad.b;
 
-  // Build per-month per-reason totals
   const data=toShow.map(r=>({
     r,
     vals:months.map(m=>m.list.filter(t=>t.reason===r&&t.type!=='income').reduce((s,t)=>s+t.amount,0))
@@ -932,10 +1009,11 @@ function drawCatTrend(months,used,cmap){
   const allVals=data.flatMap(d=>d.vals);
   const maxV=Math.max(...allVals,1);
   const n=months.length;
+
+  drawYAxis(ctx,pad,H,0,maxV,W);
+  const cW=W-pad.l-pad.r;
   function px(i){return pad.l+(i/Math.max(n-1,1))*cW;}
   function py(v){return pad.t+cH-((v/maxV)*cH);}
-
-  // Zero line
   ctx.strokeStyle='#2e2e45';ctx.lineWidth=1;ctx.setLineDash([3,4]);
   ctx.beginPath();ctx.moveTo(pad.l,pad.t+cH);ctx.lineTo(W-pad.r,pad.t+cH);ctx.stroke();ctx.setLineDash([]);
 
@@ -969,12 +1047,15 @@ function setupCanvas(id,h){
 
 function drawStack(months,used,cmap){
   const{ctx,W,H}=setupCanvas('stackChart',200);
-  const pad={t:16,b:22,l:4,r:4},cH=H-pad.t-pad.b,colW=(W-pad.l-pad.r)/months.length,barW=colW*.34;
+  const pad={t:16,b:22,l:32,r:4},cH=H-pad.t-pad.b;
   let mx=0;months.forEach(m=>{
     const r=m.list.filter(t=>t.type==='regular').reduce((s,t)=>s+t.amount,0);
     const o=m.list.filter(t=>t.type==='oneoff').reduce((s,t)=>s+t.amount,0);
     mx=Math.max(mx,r+o);
   });if(!mx)mx=1;
+
+  drawYAxis(ctx,pad,H,0,mx,W);
+  const colW=(W-pad.l-pad.r)/months.length,barW=colW*.34;
 
   months.forEach((m,i)=>{
     const cx=pad.l+i*colW+colW/2,baseY=pad.t+cH;
@@ -993,11 +1074,215 @@ function drawStack(months,used,cmap){
     ctx.fillStyle='#6b6b88';ctx.font='500 9px JetBrains Mono,monospace';ctx.textAlign='center';ctx.fillText(m.label,cx,H-5);
   });
   ctx.font='500 9px JetBrains Mono,monospace';ctx.textAlign='left';
-  ctx.fillStyle='#4ade80';ctx.fillText('▮ Regular',4,12);
-  ctx.fillStyle='#fb923c99';ctx.fillText('▮ One-Off',62,12);
+  ctx.fillStyle='#4ade80';ctx.fillText('▮ Regular',pad.l+4,12);
+  ctx.fillStyle='#fb923c99';ctx.fillText('▮ One-Off',pad.l+62,12);
 }
 
-// ── SAVINGS ──────────────────────────────────────────────────────────────────
+// ── TRENDS SUB-TABS ───────────────────────────────────────────────────────────
+let currentSubtab='categories';
+function setSubtab(name){
+  currentSubtab=name;
+  ['categories','vendors'].forEach(s=>{
+    const btn=document.getElementById('subtab-'+s);
+    const content=document.getElementById('subtab-'+s+'-content');
+    const active=s===name;
+    btn.style.borderBottomColor=active?'var(--accent)':'transparent';
+    btn.style.color=active?'var(--text)':'var(--muted)';
+    content.style.display=active?'':'none';
+  });
+  if(name==='vendors')renderVendors();
+  else renderTrends();
+}
+
+// ── VENDOR ANALYSIS ───────────────────────────────────────────────────────────
+let selectedVendor='';
+
+function setVendorPeriod(val,btn){
+  const wrap=document.getElementById('vendorBreakdownPeriod');
+  wrap.dataset.value=val;
+  wrap.querySelectorAll('button').forEach(b=>{
+    const active=b===btn;
+    b.style.background=active?'var(--accent)':'var(--s2)';
+    b.style.borderColor=active?'var(--accent)':'var(--border)';
+    b.style.color=active?'#fff':'var(--muted)';
+  });
+  renderVendors();
+}
+function renderVendors(){
+  const period=document.getElementById('vendorBreakdownPeriod')?.dataset.value||'all';
+  const list=period==='month'?txnsM(viewMonth):txns;
+  const spend={},visits={};
+  list.filter(t=>t.vendor&&t.type!=='income').forEach(t=>{
+    spend[t.vendor]=(spend[t.vendor]||0)+t.amount;
+    visits[t.vendor]=(visits[t.vendor]||0)+1;
+  });
+  const sorted=Object.entries(spend).sort((a,b)=>b[1]-a[1]).slice(0,12);
+  if(!selectedVendor&&sorted.length)selectedVendor=sorted[0][0];
+  drawVendorBar(sorted,visits);
+  drawVendorTrend(selectedVendor);
+
+  // Delta — biggest absolute change vs last month
+  const curMk=mkey(viewMonth);
+  const prevD=new Date(viewMonth);prevD.setMonth(prevD.getMonth()-1);
+  const curSpend={},prevSpend={};
+  txns.filter(t=>t.vendor&&t.type!=='income').forEach(t=>{
+    if(t.date.startsWith(curMk))curSpend[t.vendor]=(curSpend[t.vendor]||0)+t.amount;
+    if(t.date.startsWith(mkey(prevD)))prevSpend[t.vendor]=(prevSpend[t.vendor]||0)+t.amount;
+  });
+  const allV=[...new Set([...Object.keys(curSpend),...Object.keys(prevSpend)])];
+  const deltas=allV.map(v=>({v,cur:curSpend[v]||0,prev:prevSpend[v]||0,delta:(curSpend[v]||0)-(prevSpend[v]||0)}))
+    .filter(d=>d.delta!==0)
+    .sort((a,b)=>Math.abs(b.delta)-Math.abs(a.delta))
+    .slice(0,8);
+  const deltaEl=document.getElementById('vendorDelta');
+  deltaEl.innerHTML=deltas.length?deltas.map(d=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);">
+      <div style="flex:1;font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(d.v)}</div>
+      <div style="font-size:10px;color:var(--muted);">${fmtP2(d.prev)}<span style="color:var(--dim);margin:0 4px;">→</span>${fmtP2(d.cur)}</div>
+      <div style="font-size:11px;font-weight:600;min-width:52px;text-align:right;color:${d.delta>0?'var(--danger)':'var(--regular)'};">${d.delta>0?'+':''}${fmtP2(d.delta)}</div>
+    </div>`).join(''):'<div class="empty">No change vs last month</div>';
+}
+
+function drawVendorBar(sorted,visits){
+  const canvas=document.getElementById('vendorBarChart');
+  if(!canvas)return;
+  const ctx=canvas.getContext('2d');
+  const dpr=window.devicePixelRatio||1;
+  const W=canvas.parentElement.clientWidth-32;
+  const H=220;
+  canvas.width=W*dpr;canvas.height=H*dpr;canvas.style.width=W+'px';canvas.style.height=H+'px';
+  ctx.scale(dpr,dpr);ctx.clearRect(0,0,W,H);
+
+  if(!sorted.length){
+    ctx.fillStyle='#6b6b88';ctx.font='500 11px JetBrains Mono,monospace';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText('No vendor data',W/2,H/2);ctx.textBaseline='alphabetic';return;
+  }
+
+  const maxSpend=sorted[0][1];
+  const maxVisits=Math.max(...sorted.map(([v])=>visits[v]||0),1);
+  const n=sorted.length;
+  // Reserve bottom space for 45° labels — estimate max label width
+  const labelH=44;
+  const padT=8,padB=labelH,padR=36; // padR for visit axis
+  // Use drawYAxis to compute padL dynamically
+  const pad={t:padT,b:padB,l:8,r:padR};
+  const cH=H-padT-padB;
+
+  // Draw spend Y axis (left)
+  drawYAxis(ctx,pad,H,0,maxSpend,W-padR);
+
+  // Draw visits Y axis (right) — manual, simple
+  ctx.save();
+  ctx.font='500 8px JetBrains Mono,monospace';ctx.fillStyle='#60a5fa99';ctx.textAlign='left';ctx.textBaseline='middle';
+  for(let i=0;i<=3;i++){
+    const v=Math.round((maxVisits/3)*i);
+    const y=padT+cH-((v/maxVisits)*cH);
+    ctx.fillText(v+'×',W-padR+4,y);
+  }
+  ctx.restore();
+
+  const plotW=W-pad.l-padR;
+  const colW=plotW/n;
+  const barW=Math.min(colW*0.28,14);
+  const gap=Math.min(colW*0.05,4);
+  canvas._bars=[];
+
+  sorted.forEach(([vendor,amt],i)=>{
+    const cx=pad.l+i*colW+colW/2;
+    const isSelected=vendor===selectedVendor;
+
+    // Spend bar (purple, left axis)
+    const sh=Math.max((amt/maxSpend)*cH,2);
+    ctx.fillStyle=isSelected?'#a78bfa':'#a78bfa44';
+    ctx.beginPath();ctx.roundRect(cx-barW-gap,padT+cH-sh,barW,sh,2);ctx.fill();
+
+    // Visits bar (blue, right axis)
+    const vh=Math.max(((visits[vendor]||0)/maxVisits)*cH,2);
+    ctx.fillStyle=isSelected?'#60a5fa':'#60a5fa44';
+    ctx.beginPath();ctx.roundRect(cx+gap,padT+cH-vh,barW,vh,2);ctx.fill();
+
+    // 45° label
+    const label=vendor.length>9?vendor.slice(0,8)+'…':vendor;
+    ctx.save();
+    ctx.translate(cx,padT+cH+6);
+    ctx.rotate(-Math.PI/4);
+    ctx.fillStyle=isSelected?'#e8e8f0':'#6b6b88';
+    ctx.font=`${isSelected?'600':'500'} 8px JetBrains Mono,monospace`;
+    ctx.textAlign='right';ctx.textBaseline='middle';
+    ctx.fillText(label,0,0);
+    ctx.restore();
+
+    canvas._bars.push({vendor,amt,x1:pad.l+i*colW,x2:pad.l+(i+1)*colW});
+  });
+
+  canvas.onclick=(e)=>{
+    const rect=canvas.getBoundingClientRect();
+    const mx=(e.clientX-rect.left)*(W/rect.width);
+    const bar=canvas._bars?.find(b=>mx>=b.x1&&mx<b.x2);
+    const deselect=!bar||bar.vendor===selectedVendor;
+    if(deselect){selectedVendor='';drawVendorBar(sorted,visits);drawVendorTrend('');const box=document.getElementById('vendorSelectedDelta');if(box)box.style.display='none';return;}
+    selectedVendor=bar.vendor;
+    drawVendorBar(sorted,visits);
+    drawVendorTrend(bar.vendor);
+    // Show delta for this vendor
+    const curMk=mkey(viewMonth);
+    const prevD=new Date(viewMonth);prevD.setMonth(prevD.getMonth()-1);
+    const curAmt=txns.filter(t=>t.vendor===bar.vendor&&t.date.startsWith(curMk)&&t.type!=='income').reduce((s,t)=>s+t.amount,0);
+    const prevAmt=txns.filter(t=>t.vendor===bar.vendor&&t.date.startsWith(mkey(prevD))&&t.type!=='income').reduce((s,t)=>s+t.amount,0);
+    const delta=curAmt-prevAmt;
+    const prevLabel=prevD.toLocaleDateString('en-GB',{month:'short'});
+    const curLabel=new Date(viewMonth).toLocaleDateString('en-GB',{month:'short'});
+    const box=document.getElementById('vendorSelectedDelta');
+    if(box){
+      box.style.display='flex';
+      document.getElementById('vendorDeltaLabel').textContent=`${bar.vendor}  ${prevLabel} ${fmtP2(prevAmt)} → ${curLabel} ${fmtP2(curAmt)}`;
+      const dv=document.getElementById('vendorDeltaValue');
+      dv.textContent=(delta>0?'+':'')+fmtP2(delta);
+      dv.style.color=delta>0?'var(--danger)':delta<0?'var(--regular)':'var(--muted)';
+    }
+  };
+}
+
+function drawVendorTrend(vendor){
+  const canvas=document.getElementById('vendorTrendChart');
+  if(!canvas)return;
+  const titleEl=document.getElementById('vendorTrendTitle');
+  if(titleEl)titleEl.textContent=vendor?`${vendor} — Spend Over Time`:'Vendor Spend Over Time';
+  const ctx=canvas.getContext('2d');
+  const dpr=window.devicePixelRatio||1;
+  const W=canvas.parentElement.clientWidth-32;
+  const H=140;
+  canvas.width=W*dpr;canvas.height=H*dpr;canvas.style.width=W+'px';canvas.style.height=H+'px';
+  ctx.scale(dpr,dpr);ctx.clearRect(0,0,W,H);
+
+  if(!vendor){
+    ctx.fillStyle='#6b6b88';ctx.font='500 11px JetBrains Mono,monospace';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText('Tap a bar above to see trend',W/2,H/2);ctx.textBaseline='alphabetic';return;
+  }
+
+  const months=[];
+  for(let i=5;i>=0;i--){const d=new Date(viewMonth);d.setMonth(d.getMonth()-i);months.push({mk:mkey(d),label:d.toLocaleDateString('en-GB',{month:'short'})});}
+  const vals=months.map(m=>txns.filter(t=>t.vendor===vendor&&t.date.startsWith(m.mk)&&t.type!=='income').reduce((s,t)=>s+t.amount,0));
+  const maxV=Math.max(...vals,1);
+  const pad={t:14,b:22,l:28,r:8};
+  drawYAxis(ctx,pad,H,0,maxV,W);
+  const cW=W-pad.l-pad.r,cH=H-pad.t-pad.b;
+  const n=months.length;
+  function px(i){return pad.l+(i/Math.max(n-1,1))*cW;}
+  function py(v){return pad.t+cH-((v/maxV)*cH);}
+
+  // Fill
+  ctx.beginPath();
+  vals.forEach((v,i)=>{i?ctx.lineTo(px(i),py(v)):ctx.moveTo(px(i),py(v));});
+  ctx.lineTo(px(n-1),pad.t+cH);ctx.lineTo(px(0),pad.t+cH);ctx.closePath();
+  ctx.fillStyle='rgba(167,139,250,0.08)';ctx.fill();
+  // Line
+  ctx.beginPath();ctx.strokeStyle='#a78bfa';ctx.lineWidth=2;
+  vals.forEach((v,i)=>{i?ctx.lineTo(px(i),py(v)):ctx.moveTo(px(i),py(v));});ctx.stroke();
+  vals.forEach((v,i)=>{ctx.beginPath();ctx.arc(px(i),py(v),3,0,Math.PI*2);ctx.fillStyle='#a78bfa';ctx.fill();});
+  ctx.fillStyle='#6b6b88';ctx.font='500 9px JetBrains Mono,monospace';ctx.textAlign='center';
+  months.forEach((m,i)=>ctx.fillText(m.label,px(i),H-5));
+}
 function renderSavings(){
   const win=parseInt(document.getElementById('projWindow').value);
   const months=allMonths();
@@ -1020,10 +1305,11 @@ function renderSavings(){
   curLiq=spendAcc?spendAcc.balance:0;
   const totalAssets=accounts.reduce((s,a)=>s+a.balance,0);
 
-  const cv=document.getElementById('curLiqVal');
-  cv.textContent=fmtPs(curLiq);cv.style.color=curLiq>=0?'var(--regular)':'var(--danger)';
+
   const av=document.getElementById('avgSaveVal');
-  av.textContent=fmtPs(avgExcl);av.style.color=avgExcl>=0?'var(--regular)':'var(--danger)';
+  av.innerHTML=fmtSplit(avgExcl,'22px','14px');av.style.color=avgExcl>=0?'var(--regular)':'var(--danger)';
+  const avI=document.getElementById('avgSaveValIncl');
+  avI.innerHTML=fmtSplit(avgIncl,'22px','14px');avI.style.color=avgIncl>=0?'var(--regular)':'var(--danger)';
 
   const now=new Date();
   const mthsToEoy=12-now.getMonth();
@@ -1032,7 +1318,7 @@ function renderSavings(){
   const y1=totalAssets+avgExcl*12,y1A=totalAssets+avgIncl*12;
 
   function setProjCard(id,val){
-    const e=document.getElementById(id);e.textContent=fmtPs(val);e.style.color=val>=0?'var(--regular)':'var(--danger)';
+    const e=document.getElementById(id);e.innerHTML=fmtSplit(val,'18px','12px');e.style.color=val>=0?'var(--regular)':'var(--danger)';
   }
   setProjCard('projEoy',eoy);setProjCard('projEoyAll',eoyA);setProjCard('projY1',y1);setProjCard('projY1All',y1A);
 
@@ -1041,24 +1327,92 @@ function renderSavings(){
   renderLiqList();
 }
 
+// Shared Y-axis helper — pass W (CSS px width of canvas)
+function drawYAxis(ctx,pad,H,minV,maxV,W){
+  // Nice tick algorithm
+  function niceNum(range,round){
+    const exp=Math.floor(Math.log10(range));
+    const f=range/Math.pow(10,exp);
+    let nf;
+    if(round){nf=f<1.5?1:f<3?2:f<7?5:10;}
+    else{nf=f<=1?1:f<=2?2:f<=5?5:10;}
+    return nf*Math.pow(10,exp);
+  }
+  const rawRange=maxV-minV||1;
+  const tickSpacing=niceNum(rawRange/4,true);
+  const niceMin=Math.floor(minV/tickSpacing)*tickSpacing;
+  const niceMax=Math.ceil(maxV/tickSpacing)*tickSpacing;
+  const ticks=[];
+  for(let v=niceMin;v<=niceMax+tickSpacing*0.01;v+=tickSpacing){
+    if(v>=minV-tickSpacing*0.01&&v<=maxV+tickSpacing*0.01)ticks.push(+v.toFixed(6));
+  }
+
+  // Format without £
+  function fmtTick(v){
+    const abs=Math.abs(v);
+    const s=abs>=1000?Math.round(abs/100)/10+'k':Math.round(abs).toString();
+    return(v<0?'-':'')+s;
+  }
+
+  // Measure longest label to set dynamic left pad
+  ctx.save();
+  ctx.font='500 8px JetBrains Mono,monospace';
+  const longestLabel=ticks.reduce((a,v)=>{const s=fmtTick(v);return s.length>a.length?s:a;},'');
+  const measuredW=ctx.measureText(longestLabel).width;
+  pad.l=Math.ceil(measuredW)+10; // 6px gap between label and plot area
+
+  const cH=H-pad.t-pad.b;
+  const range=maxV-minV||1;
+  function py(v){return pad.t+cH-((v-minV)/range)*cH;}
+
+  ctx.textAlign='right';ctx.textBaseline='middle';ctx.fillStyle='#6b6b88';
+  ticks.forEach(v=>{
+    const y=py(v);
+    ctx.fillText(fmtTick(v),pad.l-4,y);
+    ctx.strokeStyle='rgba(46,46,69,0.5)';ctx.lineWidth=1;ctx.setLineDash([2,4]);
+    ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(W-pad.r,y);ctx.stroke();
+    ctx.setLineDash([]);
+  });
+  ctx.restore();
+}
+
 function drawLiqLine(){
   const canvas=document.getElementById('liqLineChart');
   if(!canvas)return;
   const ctx=canvas.getContext('2d');
   const dpr=window.devicePixelRatio||1;
   const W=canvas.parentElement.clientWidth-32;
-  const H=150;
+  const H=160;
   canvas.width=W*dpr;canvas.height=H*dpr;canvas.style.width=W+'px';canvas.style.height=H+'px';
   ctx.scale(dpr,dpr);ctx.clearRect(0,0,W,H);
 
   const mode=document.getElementById('liqChartMode')?.value||'all';
   const accColors=['#60a5fa','#a78bfa','#4ade80','#fb923c','#f472b6'];
 
-  // Build per-account series
-  const accsWithData=accounts.map((acc,i)=>({
-    acc,color:accColors[i%accColors.length],
-    sorted:[...liqData].filter(l=>l.accountId===acc.id||(acc.isSpending&&!l.accountId)).sort((a,b)=>a.month.localeCompare(b.month))
-  })).filter(a=>a.sorted.length>0);
+  const spendAcc=accounts.find(a=>a.isSpending);
+
+  // Build per-account series — for spending, supplement liqData with computed estimates
+  const accsWithData=accounts.map((acc,i)=>{
+    let sorted=[...liqData].filter(l=>l.accountId===acc.id||(acc.isSpending&&!l.accountId)).sort((a,b)=>a.month.localeCompare(b.month));
+    // For spending account: fill in estimated months that aren't already stored
+    if(acc.isSpending&&sorted.length){
+      const now=new Date();
+      const curMk=mkey(now);
+      const manualMonths=new Set(sorted.map(l=>l.month));
+      const earliest=sorted[0].month;
+      const d=new Date(earliest+'-01');
+      while(mkey(d)<=curMk){
+        const m=mkey(d);
+        if(!manualMonths.has(m)){
+          const est=computeEstimate(acc,m);
+          if(est!==null)sorted.push({month:m,amount:est,accountId:acc.id,estimated:true});
+        }
+        d.setMonth(d.getMonth()+1);
+      }
+      sorted.sort((a,b)=>a.month.localeCompare(b.month));
+    }
+    return{acc,color:accColors[i%accColors.length],sorted};
+  }).filter(a=>a.sorted.length>0);
 
   const toPlot=mode==='spending'
     ?accsWithData.filter(a=>a.acc.isSpending)
@@ -1070,8 +1424,18 @@ function drawLiqLine(){
     document.getElementById('liqChartLegend').innerHTML='';return;
   }
 
-  const allMonthsSet=new Set(toPlot.flatMap(a=>a.sorted.map(l=>l.month)));
-  const allM=[...allMonthsSet].sort();
+  const allDates=toPlot.flatMap(a=>a.sorted.map(l=>l.month));
+  if(!allDates.length){
+    ctx.fillStyle='#6b6b88';ctx.font='500 11px JetBrains Mono,monospace';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText('Add snapshots to see trend',W/2,H/2);ctx.textBaseline='alphabetic';
+    document.getElementById('liqChartLegend').innerHTML='';return;
+  }
+  const earliest=allDates.reduce((a,b)=>a<b?a:b);
+  const latest=allDates.reduce((a,b)=>a>b?a:b);
+  const allM=[];
+  const md=new Date(earliest+'-01');
+  const endD=new Date(latest+'-01');
+  while(md<=endD){allM.push(mkey(md));md.setMonth(md.getMonth()+1);}
 
   if(allM.length<2){
     ctx.fillStyle='#6b6b88';ctx.font='500 11px JetBrains Mono,monospace';ctx.textAlign='center';ctx.textBaseline='middle';
@@ -1079,72 +1443,97 @@ function drawLiqLine(){
     document.getElementById('liqChartLegend').innerHTML='';return;
   }
 
-  function getVal(sorted,month){return sorted.find(l=>l.month===month)?.amount??null;}
+  function buildSeries(acc,sorted){
+    const snapMap={};
+    sorted.forEach(l=>{if(snapMap[l.month]===undefined||l.date>=(snapMap[l.month]?.date||''))snapMap[l.month]={amount:l.amount,estimated:!!l.estimated};});
+    if(acc.isSpending){
+      return allM.map(m=>snapMap[m]??null);
+    } else {
+      let last=null;
+      return allM.map(m=>{
+        if(snapMap[m]!==undefined)last=snapMap[m];
+        return last;
+      });
+    }
+  }
 
-  // Compute total line per month (only when mode=all)
+  const seriesMap=toPlot.map(({acc,color,sorted})=>({acc,color,vals:buildSeries(acc,sorted)}));
+
   const totalByMonth={};
   if(mode==='all'){
-    allM.forEach(m=>{
+    allM.forEach((m,mi)=>{
       let t=0,hasAny=false;
-      toPlot.forEach(({sorted})=>{const v=getVal(sorted,m);if(v!==null){t+=v;hasAny=true;}});
-      if(hasAny)totalByMonth[m]=t;
+      seriesMap.forEach(({vals})=>{if(vals[mi]!==null){t+=vals[mi].amount;hasAny=true;}});
+      if(hasAny)totalByMonth[mi]=t;
     });
   }
 
   const allVals=[
     ...Object.values(totalByMonth),
-    ...toPlot.flatMap(a=>a.sorted.map(l=>l.amount)),0
+    ...seriesMap.flatMap(({vals})=>vals.filter(v=>v!==null).map(v=>v.amount)),0
   ];
   const maxV=Math.max(...allVals),minV=Math.min(...allVals,0),range=maxV-minV||1;
-  const pad={t:14,b:22,l:8,r:8},cW=W-pad.l-pad.r,cH=H-pad.t-pad.b;
+  const pad={t:14,b:22,l:28,r:8},cH=H-pad.t-pad.b;
   const n=allM.length;
-  function px(i){return pad.l+(i/Math.max(n-1,1))*cW;}
   function py(v){return pad.t+cH-(((v-minV)/range)*cH);}
 
+  // Y axis
+  drawYAxis(ctx,pad,H,minV,maxV,W);
+  const cW=W-pad.l-pad.r;
+  function px(i){return pad.l+(i/Math.max(n-1,1))*cW;}
+
   if(mode==='all'&&toPlot.length>1){
-    // Draw individual account lines (dashed, dimmer)
-    toPlot.forEach(({acc,color,sorted})=>{
-      const pts=allM.map((m,i)=>({i,v:getVal(sorted,m)})).filter(p=>p.v!==null);
+    seriesMap.forEach(({acc,color,vals})=>{
+      const pts=vals.map((v,i)=>({i,v})).filter(p=>p.v!==null);
       if(pts.length<1)return;
-      ctx.beginPath();ctx.strokeStyle=color+'99';ctx.lineWidth=1.5;ctx.setLineDash([3,3]);
-      pts.forEach((p,j)=>{j?ctx.lineTo(px(p.i),py(p.v)):ctx.moveTo(px(p.i),py(p.v));});
+      // Draw estimated segments dashed
+      ctx.lineWidth=1.5;ctx.strokeStyle=color+'99';
+      let penDown=false;
+      pts.forEach((p,j)=>{
+        const isEst=p.v.estimated;
+        ctx.setLineDash(isEst?[3,3]:[]);
+        if(j===0){ctx.beginPath();ctx.moveTo(px(p.i),py(p.v.amount));penDown=true;}
+        else{ctx.lineTo(px(p.i),py(p.v.amount));ctx.stroke();ctx.beginPath();ctx.moveTo(px(p.i),py(p.v.amount));}
+      });
       ctx.stroke();ctx.setLineDash([]);
-      pts.forEach(p=>{ctx.beginPath();ctx.arc(px(p.i),py(p.v),2,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();});
+      pts.forEach(p=>{if(!p.v.estimated){ctx.beginPath();ctx.arc(px(p.i),py(p.v.amount),2,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();}});
     });
-    // Total line (solid, bright blue)
-    const totalPts=allM.map((m,i)=>({i,v:totalByMonth[m]??null})).filter(p=>p.v!==null);
+    const totalPts=Object.entries(totalByMonth).map(([i,v])=>({i:parseInt(i),v})).sort((a,b)=>a.i-b.i);
     if(totalPts.length>1){
       ctx.beginPath();
       totalPts.forEach((p,j)=>{j?ctx.lineTo(px(p.i),py(p.v)):ctx.moveTo(px(p.i),py(p.v));});
       ctx.lineTo(px(totalPts[totalPts.length-1].i),pad.t+cH);ctx.lineTo(px(totalPts[0].i),pad.t+cH);ctx.closePath();
       ctx.fillStyle='rgba(96,165,250,0.07)';ctx.fill();
-      ctx.beginPath();ctx.strokeStyle='#60a5fa';ctx.lineWidth=2;
+      ctx.beginPath();ctx.strokeStyle='#60a5fa';ctx.lineWidth=2;ctx.setLineDash([]);
       totalPts.forEach((p,j)=>{j?ctx.lineTo(px(p.i),py(p.v)):ctx.moveTo(px(p.i),py(p.v));});ctx.stroke();
       totalPts.forEach(p=>{ctx.beginPath();ctx.arc(px(p.i),py(p.v),3,0,Math.PI*2);ctx.fillStyle='#60a5fa';ctx.fill();});
     }
   } else {
-    // Single account or spending-only: just draw it solid
-    toPlot.forEach(({acc,color,sorted})=>{
-      const pts=allM.map((m,i)=>({i,v:getVal(sorted,m)})).filter(p=>p.v!==null);
+    seriesMap.forEach(({acc,color,vals})=>{
+      const pts=vals.map((v,i)=>({i,v})).filter(p=>p.v!==null);
       if(pts.length<1)return;
       ctx.beginPath();
-      pts.forEach((p,j)=>{j?ctx.lineTo(px(p.i),py(p.v)):ctx.moveTo(px(p.i),py(p.v));});
+      pts.forEach((p,j)=>{j?ctx.lineTo(px(p.i),py(p.v.amount)):ctx.moveTo(px(p.i),py(p.v.amount));});
       ctx.lineTo(px(pts[pts.length-1].i),pad.t+cH);ctx.lineTo(px(pts[0].i),pad.t+cH);ctx.closePath();
       ctx.fillStyle=color+'14';ctx.fill();
-      ctx.beginPath();ctx.strokeStyle=color;ctx.lineWidth=2;
-      pts.forEach((p,j)=>{j?ctx.lineTo(px(p.i),py(p.v)):ctx.moveTo(px(p.i),py(p.v));});ctx.stroke();
-      pts.forEach(p=>{ctx.beginPath();ctx.arc(px(p.i),py(p.v),3,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();});
+      ctx.lineWidth=2;
+      // Solid for manual, dashed for estimated
+      pts.forEach((p,j)=>{
+        if(j===0){ctx.beginPath();ctx.moveTo(px(p.i),py(p.v.amount));return;}
+        ctx.setLineDash(p.v.estimated?[3,3]:[]);ctx.strokeStyle=color;
+        ctx.lineTo(px(p.i),py(p.v.amount));ctx.stroke();ctx.beginPath();ctx.moveTo(px(p.i),py(p.v.amount));
+      });
+      ctx.setLineDash([]);
+      pts.forEach(p=>{if(!p.v.estimated){ctx.beginPath();ctx.arc(px(p.i),py(p.v.amount),3,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();}});
     });
   }
 
-  // X labels
   const step=Math.ceil(n/6);
   ctx.fillStyle='#6b6b88';ctx.font='500 9px JetBrains Mono,monospace';ctx.textAlign='center';
   allM.forEach((m,i)=>{
     if(i%step===0||i===n-1)ctx.fillText(new Date(m+'-01').toLocaleDateString('en-GB',{month:'short',year:'2-digit'}),px(i),H-5);
   });
 
-  // Legend
   const leg=document.getElementById('liqChartLegend');
   const items=mode==='all'&&toPlot.length>1
     ?[...toPlot.map(({acc,color})=>({label:acc.name,color})),{label:'Total',color:'#60a5fa'}]
@@ -1157,17 +1546,25 @@ function drawLiqLine(){
 function drawSavingsLine(recent,excl,incl){
   const{ctx,W,H}=setupCanvas('savingsChart',150);
   if(!recent.length)return;
-  const pad={t:14,b:22,l:8,r:8},cW=W-pad.l-pad.r,cH=H-pad.t-pad.b;
-  const all=[...excl,...incl,0];
-  const maxV=Math.max(...all,1),minV=Math.min(...all,0),range=maxV-minV||1;
+  const pad={t:14,b:22,l:28,r:8},cH=H-pad.t-pad.b;
+  const allVals=[...excl,...(showOneOff?incl:[])].filter(v=>v!==undefined);
+  if(!allVals.length)return;
+  const dataMin=Math.min(...allVals),dataMax=Math.max(...allVals);
+  const margin=(dataMax-dataMin)*0.15||100;
+  const minV=dataMin-margin,maxV=dataMax+margin;
+  const range=maxV-minV||1;
   function py(v){return pad.t+cH-(((v-minV)/range)*cH);}
   const n=recent.length;
-  function px(i){return pad.l+(i/Math.max(n-1,1))*cW;}
 
-  // Zero line
-  const z=py(0);
-  ctx.strokeStyle='#2e2e45';ctx.lineWidth=1;ctx.setLineDash([3,4]);
-  ctx.beginPath();ctx.moveTo(pad.l,z);ctx.lineTo(W-pad.r,z);ctx.stroke();ctx.setLineDash([]);
+  drawYAxis(ctx,pad,H,minV,maxV,W);
+  const cW=W-pad.l-pad.r;
+  function px(i){return pad.l+(i/Math.max(n-1,1))*cW;}
+  // Zero line only if zero is in range
+  if(minV<0&&maxV>0){
+    const z=py(0);
+    ctx.strokeStyle='#2e2e45';ctx.lineWidth=1;ctx.setLineDash([3,4]);
+    ctx.beginPath();ctx.moveTo(pad.l,z);ctx.lineTo(W-pad.r,z);ctx.stroke();ctx.setLineDash([]);
+  }
 
   // incl line
   if(showOneOff&&incl.length>1){
@@ -1214,7 +1611,7 @@ function renderAccounts(){
         </div>
         ${a.notes?`<div style="font-size:10px;color:var(--muted);margin-top:1px;">${esc(a.notes)}</div>`:''}
       </div>
-      <div style="font-family:'Fraunces',serif;font-size:18px;font-weight:600;color:${a.balance>=0?'var(--regular)':'var(--danger)'};">${fmtPs(a.balance)}</div>
+      <div style="font-family:'Fraunces',serif;font-size:18px;font-weight:600;color:${a.balance>=0?'var(--regular)':'var(--danger)'};">${fmtSplit(a.balance,'18px','12px')}</div>
       <button class="del-btn" onclick="openEditAccount('${a.id}')" style="color:var(--muted)">✎</button>
     </div>`).join(''):'<div class="empty">No accounts yet</div>';
 
@@ -1307,7 +1704,7 @@ function renderSpendingSnapGrid(acc){
     if(est!==null)snapMap[m]={amount:est,manual:false};
   });
 
-  return months.map(m=>{
+  return [...months].reverse().map(m=>{
     const snap=snapMap[m];
     const isFuture=m>curMk;
     const label=new Date(m+'-01').toLocaleDateString('en-GB',{month:'short',year:'2-digit'});
@@ -1681,7 +2078,7 @@ function saveTxn(){
     else spendAcc.balance-=amount;
     saveA();
   }
-  saveT();closeO('addOverlay');renderAll();
+  saveT();crystallisePastMonths();closeO('addOverlay');renderAll();
 }
 // Vendor autocomplete + category inference on selection
 const vIn=document.getElementById('vendorIn'),vAC=document.getElementById('vendorAC');
@@ -1735,7 +2132,7 @@ async function requestPersistentStorage(){
 
 // ── EXPORT ───────────────────────────────────────────────────────────────────
 function exportData(){
-  const blob=new Blob([JSON.stringify({version:3,exportedAt:new Date().toISOString(),transactions:txns,liquiditySnapshots:liqData,currentLiquidity:curLiq,reasons,vendors,accounts,transfers},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({version:3,exportedAt:new Date().toISOString(),transactions:txns,liquiditySnapshots:liqData,currentLiquidity:curLiq,reasons,vendors,accounts,transfers,currencySymbol},null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
   a.href=url;a.download=`ledger-backup-${new Date().toISOString().slice(0,10)}.json`;a.click();
@@ -1755,7 +2152,8 @@ function importData(event){
       txns=data.transactions||[];liqData=data.liquiditySnapshots||[];curLiq=data.currentLiquidity||0;
       if(data.reasons)reasons=data.reasons;if(data.vendors)vendors=data.vendors;
       if(data.accounts)accounts=data.accounts;if(data.transfers)transfers=data.transfers;
-      saveT();saveL();saveC();saveR();saveV();saveA();saveX();
+      if(data.currencySymbol)currencySymbol=data.currencySymbol;
+      saveT();saveL();saveC();saveR();saveV();saveA();saveX();saveSym();
       renderAll();alert('Backup restored!');
     }catch(err){alert('Failed to read file — make sure it is a Ledger JSON export.');}
   };
@@ -1813,13 +2211,13 @@ function saveEdit(){
     notes:document.getElementById('editNotesIn').value.trim(),
     date:document.getElementById('editDateIn').value,
   };
-  saveT();closeO('editOverlay');renderAll();
+  saveT();crystallisePastMonths();closeO('editOverlay');renderAll();
 }
 function deleteEditTxn(){
   if(!confirm('Delete this entry?'))return;
   const t=txns.find(x=>x.id===editingId);
   if(t){const sp=accounts.find(a=>a.isSpending);if(sp){if(t.type==='income')sp.balance-=t.amount;else sp.balance+=t.amount;saveA();}}
-  txns=txns.filter(t=>t.id!==editingId);saveT();closeO('editOverlay');renderAll();
+  txns=txns.filter(t=>t.id!==editingId);saveT();crystallisePastMonths();closeO('editOverlay');renderAll();
 }
 
 // ── ADD FROM DAY ─────────────────────────────────────────────────────────────
@@ -1840,9 +2238,40 @@ function addFromDay(){
   },200);
 }
 
-// ── INIT ─────────────────────────────────────────────────────────────────────
-const K_LAST_MONTH='ldgr_lastmonth_v1';
+// ── GEAR ICON ─────────────────────────────────────────────────────────────────
+function drawGearIcon(){
+  const svg=document.getElementById('gearIcon');
+  if(!svg)return;
+  const cx=50,cy=50,rBase=34,rTip=44,rHole=16,teeth=8,tw=0.28;
+  let d='';
+  for(let i=0;i<teeth;i++){
+    const a=(i/teeth)*Math.PI*2;
+    const p=(ang,r)=>[(cx+Math.cos(ang)*r).toFixed(2),(cy+Math.sin(ang)*r).toFixed(2)];
+    const pts=[p(a-tw,rBase),p(a-tw*0.5,rTip),p(a+tw*0.5,rTip),p(a+tw,rBase)];
+    pts.forEach((pt,j)=>{d+=(i===0&&j===0?'M':'L')+pt[0]+' '+pt[1]+' ';});
+  }
+  d+='Z';
+  svg.innerHTML=`<circle cx="50" cy="50" r="${rBase}" fill="#a78bfa"/><path d="${d}" fill="#a78bfa"/><circle cx="50" cy="50" r="${rHole}" fill="#0a0a0f"/>`;
+}
 
+// ── CURRENCY ──────────────────────────────────────────────────────────────────
+const COMMON_CURRENCIES=['£','$','€','¥','₹','CHF','kr'];
+function renderCurrencyPills(){
+  const el=document.getElementById('currencyPills');
+  if(!el)return;
+  el.innerHTML=COMMON_CURRENCIES.map(s=>`
+    <button onclick="setCurrency('${s}')" style="background:${currencySymbol===s?'var(--accent)':'var(--s2)'};border:1px solid ${currencySymbol===s?'var(--accent)':'var(--border)'};border-radius:20px;color:${currencySymbol===s?'#fff':'var(--muted)'};font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;padding:6px 12px;cursor:pointer;">${s}</button>
+  `).join('');
+}
+function setCurrency(sym){
+  currencySymbol=sym;saveSym();renderCurrencyPills();renderAll();
+}
+function setCustomCurrency(){
+  const v=document.getElementById('customCurrencyIn').value.trim();
+  if(!v)return;
+  setCurrency(v);
+  document.getElementById('customCurrencyIn').value='';
+}
 // Compute estimated balance for a spending account for a given month,
 // anchored from its most recent manual snapshot before that month.
 function computeEstimate(acc, targetMonth){
@@ -1854,46 +2283,49 @@ function computeEstimate(acc, targetMonth){
   if(!anchors.length)return null;
   const anchor=anchors[anchors.length-1];
   if(anchor.month===targetMonth)return null; // already has a manual entry
+  function nextMonthStart(mk){const d=new Date(mk+'-01');d.setMonth(d.getMonth()+1);return mkey(d)+'-01';}
+  const afterAnchor=nextMonthStart(anchor.month);
+  const afterTarget=nextMonthStart(targetMonth);
   const netTxns=txns
-    .filter(t=>t.date>anchor.month+'-31'&&t.date<=targetMonth+'-31')
+    .filter(t=>t.date>=afterAnchor&&t.date<afterTarget)
     .reduce((s,t)=>t.type==='income'?s+t.amount:s-t.amount,0);
   const netXfer=transfers
-    .filter(x=>x.date>anchor.month+'-31'&&x.date<=targetMonth+'-31')
+    .filter(x=>x.date>=afterAnchor&&x.date<afterTarget)
     .reduce((s,x)=>x.from===acc.id?s-x.amount:x.to===acc.id?s+x.amount:s,0);
   return+(anchor.amount+netTxns+netXfer).toFixed(2);
 }
 
-// On app open: if the month has rolled over since last run,
-// crystallise all estimated months before the current month.
-(function crystalliseOnRollover(){
+// Crystallise past months: for any past month with no manual entry,
+// compute the estimate once and save it. Current/future months are always live.
+function crystallisePastMonths(){
   const sp=accounts.find(a=>a.isSpending);
   if(!sp)return;
   const curMk=mkey(new Date());
-  const lastSeen=localStorage.getItem(K_LAST_MONTH)||curMk;
-  localStorage.setItem(K_LAST_MONTH,curMk);
-  if(lastSeen>=curMk)return; // same month or future — nothing to do
-
-  // Find all months between lastSeen (exclusive) and curMk (exclusive) that need crystallising
-  const d=new Date(lastSeen+'-01');
-  d.setMonth(d.getMonth()+1); // start from month after lastSeen
+  // Collect all months that have transactions or existing snaps
+  const allMonthsSet=new Set([
+    ...txns.map(t=>t.date.slice(0,7)),
+    ...liqData.filter(l=>l.accountId===sp.id||(sp.isSpending&&!l.accountId)).map(l=>l.month)
+  ]);
   let changed=false;
-  while(mkey(d)<curMk){
-    const m=mkey(d);
-    const exists=liqData.find(l=>l.month===m&&(l.accountId===sp.id||(sp.isSpending&&!l.accountId))&&!l.estimated);
-    if(!exists){
-      const est=computeEstimate(sp,m);
-      if(est!==null){
-        // Remove any old estimated entry for this month, write as crystallised manual
-        liqData=liqData.filter(l=>!(l.month===m&&(l.accountId===sp.id||(sp.isSpending&&!l.accountId))));
-        liqData.push({month:m,amount:est,accountId:sp.id,estimated:false,crystallised:true});
-        changed=true;
-      }
-    }
-    d.setMonth(d.getMonth()+1);
-  }
+  allMonthsSet.forEach(m=>{
+    if(m>=curMk)return; // skip current and future — always live
+    const hasManual=liqData.find(l=>l.month===m&&(l.accountId===sp.id||(sp.isSpending&&!l.accountId))&&!l.estimated);
+    if(hasManual)return; // already crystallised
+    const est=computeEstimate(sp,m);
+    if(est===null)return;
+    // Save as crystallised entry
+    liqData=liqData.filter(l=>!(l.month===m&&(l.accountId===sp.id||(sp.isSpending&&!l.accountId))));
+    liqData.push({month:m,amount:est,accountId:sp.id,estimated:false,crystallised:true});
+    changed=true;
+  });
   if(changed)saveL();
-})();
+}
+crystallisePastMonths();
 
+drawGearIcon();
+renderCurrencyPills();
+// Default collapse all account snapshot cards
+accounts.forEach(a=>{accSnapCollapsed[a.id]=true;});
 renderAll();
 requestPersistentStorage();
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
