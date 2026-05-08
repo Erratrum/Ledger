@@ -1,6 +1,6 @@
 {
-  "name": "LegdeR – Personal Budget",
-  "short_name": "LegdeR",
+  "name": "LedgeR – Personal Budget",
+  "short_name": "LedgeR",
   "description": "Simple personal budgeting app",
   "start_url": "./index.html",
   "display": "standalone",
