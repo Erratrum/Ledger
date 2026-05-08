@@ -7,7 +7,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-<title>Ledger</title>
+<title>LedgeR</title>
 <link rel="manifest" href="manifest.json"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,600;9..144,700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
@@ -124,13 +124,14 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'JetBra
 .hi-a{font-size:13px;font-weight:600;}
 .hi-t{font-size:9px;color:var(--muted);margin-top:1px;}
 /* FAB */
-.bot-nav{position:sticky;bottom:0;display:flex;justify-content:center;padding:10px 18px calc(12px + var(--safe-b));background:linear-gradient(0deg,var(--bg) 75%,transparent);margin-top:auto;}
+.bot-nav{position:sticky;bottom:0;display:flex;justify-content:center;padding:10px 18px calc(12px + var(--safe-b));background:linear-gradient(0deg,var(--bg) 75%,transparent);margin-top:auto;z-index:30;}
 .fab{width:58px;height:58px;background:var(--accent);border:none;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 24px rgba(167,139,250,.4);transition:transform .15s,box-shadow .15s;}
 .fab:active{transform:scale(.91);box-shadow:0 2px 10px rgba(167,139,250,.2);}
 .fab svg{width:26px;height:26px;color:#fff;}
 /* Modal */
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(6px);z-index:100;display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity .2s;}
 .overlay.open{opacity:1;pointer-events:all;}
+#vendorDetailOverlay{z-index:200;}
 .sheet{background:var(--s1);border:1px solid var(--border);border-radius:22px 22px 0 0;padding:20px 18px calc(22px + var(--safe-b));width:100%;max-width:430px;margin:0 auto;transform:translateY(100%);transition:transform .3s cubic-bezier(.34,1.56,.64,1);max-height:92dvh;overflow-y:auto;}
 .overlay.open .sheet{transform:translateY(0);}
 .s-handle{width:36px;height:3px;background:var(--border);border-radius:2px;margin:0 auto 18px;}
@@ -188,7 +189,7 @@ canvas{display:block;}
   <header class="hdr">
     <div class="hdr-top">
       <div class="hdr-left">
-        <div class="hdr-title display">Led<span>ger</span></div>
+        <div class="hdr-title display">Led<span>geR</span></div>
         <div class="hdr-total display" id="hdrTotal">£0</div>
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
@@ -621,6 +622,27 @@ canvas{display:block;}
     <button class="btn" onclick="saveBudgetEdit()">Save Budget</button>
     <button class="btn sec" style="background:rgba(248,113,113,.1);color:var(--danger);margin-top:4px;" id="budgetEditClearBtn" onclick="clearBudgetEdit()">Clear Budget</button>
     <button class="btn sec" onclick="closeO('budgetEditOverlay')">Cancel</button>
+  </div>
+</div>
+
+<!-- VENDOR DETAIL -->
+<div class="overlay" id="vendorDetailOverlay">
+  <div class="sheet">
+    <div class="s-handle"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <div class="s-title display" id="vendorDetailTitle" style="margin-bottom:0;"></div>
+      <button onclick="deleteVendorFromDetail()" style="background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.3);border-radius:8px;color:var(--danger);font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;padding:6px 12px;cursor:pointer;">Delete</button>
+    </div>
+    <div class="fg" style="margin-bottom:10px;">
+      <label class="fl">Rename vendor</label>
+      <div style="display:flex;gap:6px;">
+        <input class="fi" id="vendorDetailRenameIn" type="text" placeholder="New name…" style="flex:1;"/>
+        <button onclick="applyVendorRename()" style="background:var(--accent);border:none;border-radius:10px;color:#fff;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;padding:0 16px;cursor:pointer;">Rename</button>
+      </div>
+    </div>
+    <div class="card-title" style="margin-bottom:8px;">Transactions</div>
+    <div id="vendorDetailTxns"></div>
+    <button class="btn sec" onclick="closeO('vendorDetailOverlay')" style="margin-top:12px;">Close</button>
   </div>
 </div>
 
@@ -1074,8 +1096,10 @@ function drawPie(cmap,usedArr){
   }
   ctx.textBaseline='alphabetic';
 
-  // 6b. ONE-OFF label — drawn absolutely last so nothing covers it
+  // 6b. ONE-OFF label + % — drawn absolutely last so nothing covers it
   if(ooEntries.length){
+    const ooTotal=ooEntries.reduce((s,[,v])=>s+v,0);
+    const ooPct=Math.round(ooTotal/total*100);
     const ooArcSpan=ooEntries.reduce((s,[,v])=>s+(v/total)*Math.PI*2,0);
     const ooMidAngle=-Math.PI/2+ooArcSpan/2;
     const labelR=rOO+7;
@@ -1084,7 +1108,7 @@ function drawPie(cmap,usedArr){
     ctx.textAlign='center';ctx.textBaseline='middle';
     ctx.translate(cx+Math.cos(ooMidAngle)*labelR, cy+Math.sin(ooMidAngle)*labelR);
     ctx.rotate(ooMidAngle+Math.PI/2);
-    ctx.fillText('ONE-OFF',0,0);
+    ctx.fillText(`ONE-OFF ${ooPct}%`,0,0);
     ctx.restore();
   }
 
@@ -1448,7 +1472,6 @@ function renderSavings(){
   curLiq=spendAcc?spendAcc.balance:0;
   const totalAssets=accounts.reduce((s,a)=>s+a.balance,0);
 
-
   const av=document.getElementById('avgSaveVal');
   av.innerHTML=fmtSplit(avgExcl,'22px','14px');av.style.color=avgExcl>=0?'var(--regular)':'var(--danger)';
   const avI=document.getElementById('avgSaveValIncl');
@@ -1465,9 +1488,16 @@ function renderSavings(){
   }
   setProjCard('projEoy',eoy);setProjCard('projEoyAll',eoyA);setProjCard('projY1',y1);setProjCard('projY1All',y1A);
 
-  drawSavingsLine(recent,exclArr,inclArr);
-  drawLiqLine();
+  // Only draw canvases when the overview panel is visible — avoids 0-width renders
+  // when the Budget sub-tab is active. We'll redraw when switching back to Overview.
+  const overviewVisible=document.getElementById('savtab-overview-content')?.style.display!=='none';
+  if(overviewVisible){
+    drawSavingsLine(recent,exclArr,inclArr);
+    drawLiqLine();
+  }
   renderLiqList();
+  // Store for deferred redraw
+  renderSavings._last={recent,exclArr,inclArr};
 }
 
 // Shared Y-axis helper — pass W (CSS px width of canvas)
@@ -1525,6 +1555,7 @@ function drawLiqLine(){
   const ctx=canvas.getContext('2d');
   const dpr=window.devicePixelRatio||1;
   const W=canvas.parentElement.clientWidth-32;
+  if(W<=0)return; // guard against hidden panel
   const H=160;
   canvas.width=W*dpr;canvas.height=H*dpr;canvas.style.width=W+'px';canvas.style.height=H+'px';
   ctx.scale(dpr,dpr);ctx.clearRect(0,0,W,H);
@@ -1534,10 +1565,9 @@ function drawLiqLine(){
 
   const spendAcc=accounts.find(a=>a.isSpending);
 
-  // Build per-account series — for spending, supplement liqData with computed estimates
+  // Build per-account series
   const accsWithData=accounts.map((acc,i)=>{
     let sorted=[...liqData].filter(l=>l.accountId===acc.id||(acc.isSpending&&!l.accountId)).sort((a,b)=>a.month.localeCompare(b.month));
-    // For spending account: fill in estimated months that aren't already stored
     if(acc.isSpending&&sorted.length){
       const now=new Date();
       const curMk=mkey(now);
@@ -1601,48 +1631,114 @@ function drawLiqLine(){
   }
 
   const seriesMap=toPlot.map(({acc,color,sorted})=>({acc,color,vals:buildSeries(acc,sorted)}));
-
-  const allVals=[
-    ...seriesMap.flatMap(({vals})=>vals.filter(v=>v!==null).map(v=>v.amount)),0
-  ];
-  const maxV=Math.max(...allVals),minV=Math.min(...allVals,0),range=maxV-minV||1;
-  const pad={t:14,b:22,l:28,r:8},cH=H-pad.t-pad.b;
   const n=allM.length;
-  function py(v){return pad.t+cH-(((v-minV)/range)*cH);}
 
-  // Y axis
-  drawYAxis(ctx,pad,H,minV,maxV,W);
-  const cW=W-pad.l-pad.r;
-  function px(i){return pad.l+(i/Math.max(n-1,1))*cW;}
+  const pad={t:14,b:22,l:28,r:8},cH=H-pad.t-pad.b;
 
-  [...seriesMap].reverse().forEach(({acc,color,vals})=>{
-    const pts=vals.map((v,i)=>({i,v})).filter(p=>p.v!==null);
-    if(pts.length<1)return;
-    ctx.beginPath();
-    pts.forEach((p,j)=>{j?ctx.lineTo(px(p.i),py(p.v.amount)):ctx.moveTo(px(p.i),py(p.v.amount));});
-    ctx.lineTo(px(pts[pts.length-1].i),pad.t+cH);ctx.lineTo(px(pts[0].i),pad.t+cH);ctx.closePath();
-    ctx.fillStyle=color+'14';ctx.fill();
-    ctx.lineWidth=2;
-    pts.forEach((p,j)=>{
-      if(j===0){ctx.beginPath();ctx.moveTo(px(p.i),py(p.v.amount));return;}
-      ctx.setLineDash(p.v.estimated?[3,3]:[]);ctx.strokeStyle=color;
-      ctx.lineTo(px(p.i),py(p.v.amount));ctx.stroke();ctx.beginPath();ctx.moveTo(px(p.i),py(p.v.amount));
+  if(mode==='all'&&toPlot.length>1){
+    // ── STACKED AREA ──
+    // For each time index, compute cumulative stack values (nulls propagate as 0 for stacking)
+    // Stack order: spending at bottom, savings accounts on top
+    const stackedTops=allM.map((_,i)=>{
+      let cum=0;
+      return seriesMap.map(({vals})=>{
+        const v=vals[i];
+        const amt=v!==null?v.amount:0;
+        cum+=amt;
+        return cum;
+      });
     });
-    ctx.setLineDash([]);
-    pts.forEach(p=>{if(!p.v.estimated){ctx.beginPath();ctx.arc(px(p.i),py(p.v.amount),3,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();}});
-  });
+    // Max is the highest cumulative value at any point
+    const maxV=Math.max(...stackedTops.flatMap(s=>s),1);
+    const minV=0;
+    const range=maxV-minV||1;
+    function py(v){return pad.t+cH-(((v-minV)/range)*cH);}
 
-  const step=Math.ceil(n/6);
-  ctx.fillStyle='#6b6b88';ctx.font='500 9px JetBrains Mono,monospace';ctx.textAlign='center';
-  allM.forEach((m,i)=>{
-    if(i%step===0||i===n-1)ctx.fillText(new Date(m+'-01').toLocaleDateString('en-GB',{month:'short',year:'2-digit'}),px(i),H-5);
-  });
+    drawYAxis(ctx,pad,H,minV,maxV,W);
+    const cW=W-pad.l-pad.r;
+    function px(i){return pad.l+(i/Math.max(n-1,1))*cW;}
 
-  const leg=document.getElementById('liqChartLegend');
-  const items=toPlot.map(({acc,color})=>({label:acc.name,color}));
-  leg.innerHTML=items.map(({label,color})=>`
-    <div style="display:flex;align-items:center;gap:4px;font-size:9px;color:var(--muted)">
-      <div style="width:8px;height:8px;border-radius:2px;background:${color}"></div>${esc(label)}</div>`).join('');
+    // Draw from top series downward so bottom series paints over
+    for(let si=seriesMap.length-1;si>=0;si--){
+      const {color}=seriesMap[si];
+      // top edge = stackedTops[i][si], bottom edge = stackedTops[i][si-1] or 0
+      const topPts=allM.map((_,i)=>stackedTops[i][si]);
+      const botPts=allM.map((_,i)=>si>0?stackedTops[i][si-1]:0);
+
+      // Only draw if series has any data
+      const hasData=seriesMap[si].vals.some(v=>v!==null);
+      if(!hasData)continue;
+
+      ctx.beginPath();
+      // Go left-to-right along top edge
+      topPts.forEach((v,i)=>{i?ctx.lineTo(px(i),py(v)):ctx.moveTo(px(i),py(v));});
+      // Come back right-to-left along bottom edge
+      for(let i=n-1;i>=0;i--)ctx.lineTo(px(i),py(botPts[i]));
+      ctx.closePath();
+      ctx.fillStyle=color+'55';ctx.fill();
+
+      // Top edge line
+      ctx.beginPath();ctx.strokeStyle=color;ctx.lineWidth=2;
+      topPts.forEach((v,i)=>{i?ctx.lineTo(px(i),py(v)):ctx.moveTo(px(i),py(v));});ctx.stroke();
+
+      // Dots on top edge where data is manual
+      seriesMap[si].vals.forEach((v,i)=>{
+        if(v!==null&&!v.estimated){
+          ctx.beginPath();ctx.arc(px(i),py(topPts[i]),3,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();
+        }
+      });
+    }
+
+    const step=Math.ceil(n/6);
+    ctx.fillStyle='#6b6b88';ctx.font='500 9px JetBrains Mono,monospace';ctx.textAlign='center';
+    allM.forEach((m,i)=>{
+      if(i%step===0||i===n-1)ctx.fillText(new Date(m+'-01').toLocaleDateString('en-GB',{month:'short',year:'2-digit'}),px(i),H-5);
+    });
+
+    const leg=document.getElementById('liqChartLegend');
+    leg.innerHTML=[...toPlot].reverse().map(({acc,color})=>`
+      <div style="display:flex;align-items:center;gap:4px;font-size:9px;color:var(--muted)">
+        <div style="width:8px;height:8px;border-radius:2px;background:${color}"></div>${esc(acc.name)}</div>`).join('')
+      +'<div style="display:flex;align-items:center;gap:4px;font-size:9px;color:var(--muted);margin-left:4px;">(stacked)</div>';
+
+  } else {
+    // ── SINGLE / SPENDING-ONLY — individual lines ──
+    const allVals=[...seriesMap.flatMap(({vals})=>vals.filter(v=>v!==null).map(v=>v.amount)),0];
+    const maxV=Math.max(...allVals),minV=Math.min(...allVals,0),range=maxV-minV||1;
+    function py(v){return pad.t+cH-(((v-minV)/range)*cH);}
+
+    drawYAxis(ctx,pad,H,minV,maxV,W);
+    const cW=W-pad.l-pad.r;
+    function px(i){return pad.l+(i/Math.max(n-1,1))*cW;}
+
+    [...seriesMap].reverse().forEach(({acc,color,vals})=>{
+      const pts=vals.map((v,i)=>({i,v})).filter(p=>p.v!==null);
+      if(pts.length<1)return;
+      ctx.beginPath();
+      pts.forEach((p,j)=>{j?ctx.lineTo(px(p.i),py(p.v.amount)):ctx.moveTo(px(p.i),py(p.v.amount));});
+      ctx.lineTo(px(pts[pts.length-1].i),pad.t+cH);ctx.lineTo(px(pts[0].i),pad.t+cH);ctx.closePath();
+      ctx.fillStyle=color+'14';ctx.fill();
+      ctx.lineWidth=2;
+      pts.forEach((p,j)=>{
+        if(j===0){ctx.beginPath();ctx.moveTo(px(p.i),py(p.v.amount));return;}
+        ctx.setLineDash(p.v.estimated?[3,3]:[]);ctx.strokeStyle=color;
+        ctx.lineTo(px(p.i),py(p.v.amount));ctx.stroke();ctx.beginPath();ctx.moveTo(px(p.i),py(p.v.amount));
+      });
+      ctx.setLineDash([]);
+      pts.forEach(p=>{if(!p.v.estimated){ctx.beginPath();ctx.arc(px(p.i),py(p.v.amount),3,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();}});
+    });
+
+    const step=Math.ceil(n/6);
+    ctx.fillStyle='#6b6b88';ctx.font='500 9px JetBrains Mono,monospace';ctx.textAlign='center';
+    allM.forEach((m,i)=>{
+      if(i%step===0||i===n-1)ctx.fillText(new Date(m+'-01').toLocaleDateString('en-GB',{month:'short',year:'2-digit'}),px(i),H-5);
+    });
+
+    const leg=document.getElementById('liqChartLegend');
+    leg.innerHTML=toPlot.map(({acc,color})=>`
+      <div style="display:flex;align-items:center;gap:4px;font-size:9px;color:var(--muted)">
+        <div style="width:8px;height:8px;border-radius:2px;background:${color}"></div>${esc(acc.name)}</div>`).join('');
+  }
 }
 
 function drawSavingsLine(recent,excl,incl){
@@ -2623,6 +2719,14 @@ function renderManage(){
   else renderManageVendors(el);
 }
 
+// Track collapsed state for manage category sections
+const manageCatCollapsed={regular:true,oneoff:true,income:true};
+
+function toggleManageCatSection(type){
+  manageCatCollapsed[type]=!manageCatCollapsed[type];
+  renderManage();
+}
+
 function renderManageCategories(el){
   const types=['regular','oneoff','income'];
   const typeLabels={regular:'Regular',oneoff:'One-Off',income:'Income'};
@@ -2631,51 +2735,202 @@ function renderManageCategories(el){
   types.forEach(type=>{
     const cats=reasons.filter(r=>r.type===type);
     if(!cats.length)return;
-    html+=`<div style="font-size:8px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:${typeColours[type]};margin:10px 0 6px;">${typeLabels[type]}</div>`;
-    cats.forEach(r=>{
-      const col=r.colour||PALETTE[reasons.indexOf(r)%PALETTE.length];
-      const txnCount=txns.filter(t=>t.reason===r.id).length;
-      html+=`<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);" id="catrow_${r.id}">
-        <div style="width:12px;height:12px;border-radius:50%;background:${col};flex-shrink:0;cursor:pointer;" onclick="openCatColourPicker('${r.id}')"></div>
-        <div style="flex:1;min-width:0;">
-          <input type="text" value="${esc(r.label)}" 
-            style="background:none;border:none;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;width:100%;outline:none;padding:0;"
-            onchange="renameCategory('${r.id}',this.value)"
-            onfocus="this.style.borderBottom='1px solid var(--accent)'"
-            onblur="this.style.borderBottom='none'"/>
-          <div style="font-size:9px;color:var(--dim);margin-top:1px;">${txnCount} transaction${txnCount!==1?'s':''}</div>
-        </div>
-        <select onchange="changeCatType('${r.id}',this.value)" style="background:var(--s2);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:9px;padding:3px 6px;cursor:pointer;">
-          ${types.map(t=>`<option value="${t}"${r.type===t?' selected':''}>${typeLabels[t]}</option>`).join('')}
-        </select>
-        <button onclick="deleteCategory('${r.id}')" style="background:none;border:none;color:var(--dim);cursor:pointer;font-size:13px;padding:2px 4px;">✕</button>
-      </div>`;
-      // Colour picker placeholder (hidden by default)
-      html+=`<div id="colourpicker_${r.id}" style="display:none;flex-wrap:wrap;gap:5px;padding:8px 0 4px 20px;">
-        ${CAT_SWATCHES.map(c=>`<div onclick="setCatColour('${r.id}','${c}')" style="width:20px;height:20px;border-radius:50%;background:${c};cursor:pointer;border:2px solid ${col===c?'#fff':'transparent'};transition:border-color .1s;flex-shrink:0;"></div>`).join('')}
-      </div>`;
-    });
+    const collapsed=manageCatCollapsed[type];
+    html+=`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;cursor:pointer;border-bottom:1px solid var(--border);" onclick="toggleManageCatSection('${type}')">
+      <span style="font-size:8px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:${typeColours[type]};">${typeLabels[type]}</span>
+      <span style="display:flex;align-items:center;gap:6px;">
+        <span style="font-size:9px;color:var(--dim);">${cats.length}</span>
+        <span style="font-size:10px;color:var(--dim);transition:transform .15s;display:inline-block;transform:rotate(${collapsed?'0':'90'}deg);">›</span>
+      </span>
+    </div>`;
+    if(!collapsed){
+      cats.forEach(r=>{
+        const col=r.colour||PALETTE[reasons.indexOf(r)%PALETTE.length];
+        const txnCount=txns.filter(t=>t.reason===r.id).length;
+        html+=`<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);" id="catrow_${r.id}">
+          <div style="width:12px;height:12px;border-radius:50%;background:${col};flex-shrink:0;cursor:pointer;" onclick="openCatColourPicker('${r.id}')"></div>
+          <div style="flex:1;min-width:0;">
+            <input type="text" value="${esc(r.label)}" 
+              style="background:none;border:none;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;width:100%;outline:none;padding:0;"
+              onchange="renameCategory('${r.id}',this.value)"
+              onfocus="this.style.borderBottom='1px solid var(--accent)'"
+              onblur="this.style.borderBottom='none'"/>
+            <div style="font-size:9px;color:var(--dim);margin-top:1px;">${txnCount} transaction${txnCount!==1?'s':''}</div>
+          </div>
+          <select onchange="changeCatType('${r.id}',this.value)" style="background:var(--s2);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:9px;padding:3px 6px;cursor:pointer;">
+            ${types.map(t=>`<option value="${t}"${r.type===t?' selected':''}>${typeLabels[t]}</option>`).join('')}
+          </select>
+          <button onclick="deleteCategory('${r.id}')" style="background:none;border:none;color:var(--dim);cursor:pointer;font-size:13px;padding:2px 4px;">✕</button>
+        </div>`;
+        // Colour picker placeholder (hidden by default)
+        html+=`<div id="colourpicker_${r.id}" style="display:none;flex-wrap:wrap;gap:5px;padding:8px 0 4px 20px;">
+          ${CAT_SWATCHES.map(c=>`<div onclick="setCatColour('${r.id}','${c}')" style="width:20px;height:20px;border-radius:50%;background:${c};cursor:pointer;border:2px solid ${col===c?'#fff':'transparent'};transition:border-color .1s;flex-shrink:0;"></div>`).join('')}
+        </div>`;
+      });
+    }
   });
   el.innerHTML=html||'<div class="empty">No categories yet</div>';
 }
 
+const manageVendorCollapsed={regular:true,oneoff:true,income:true};
+
+function toggleManageVendorSection(type){
+  manageVendorCollapsed[type]=!manageVendorCollapsed[type];
+  renderManage();
+}
+
+let vendorSearchQuery='';
+
 function renderManageVendors(el){
-  const sorted=[...vendors].sort((a,b)=>b.count-a.count);
-  if(!sorted.length){el.innerHTML='<div class="empty">No vendors yet</div>';return;}
-  el.innerHTML=sorted.map(v=>{
-    const txnCount=txns.filter(t=>t.vendor===v.name).length;
-    return`<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);">
-      <div style="flex:1;min-width:0;">
-        <input type="text" value="${esc(v.name)}"
-          style="background:none;border:none;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;width:100%;outline:none;padding:0;"
-          onchange="renameVendor('${esc(v.name)}',this.value)"
-          onfocus="this.style.borderBottom='1px solid var(--accent)'"
-          onblur="this.style.borderBottom='none'"/>
-        <div style="font-size:9px;color:var(--dim);margin-top:1px;">${txnCount} transaction${txnCount!==1?'s':''}</div>
+  // Auto-delete vendors with 0 transactions silently
+  const before=vendors.length;
+  vendors=vendors.filter(v=>txns.some(t=>t.vendor===v.name));
+  if(vendors.length!==before)saveV();
+
+  if(!vendors.length){el.innerHTML='<div class="empty">No vendors yet</div>';return;}
+
+  // Determine dominant type for each vendor (tie → regular)
+  const typeOrder=['regular','oneoff','income'];
+  const typeLabels={regular:'Regular',oneoff:'One-Off',income:'Income'};
+  const typeColours={regular:'var(--regular)',oneoff:'var(--oneoff)',income:'var(--income)'};
+
+  function dominantType(vendorName){
+    const vTxns=txns.filter(t=>t.vendor===vendorName);
+    const counts={regular:0,oneoff:0,income:0};
+    vTxns.forEach(t=>{if(counts[t.type]!==undefined)counts[t.type]++;});
+    const max=Math.max(counts.regular,counts.oneoff,counts.income);
+    if(max===0)return'regular';
+    for(const tp of typeOrder){if(counts[tp]===max)return tp;}
+    return'regular';
+  }
+
+  const q=vendorSearchQuery.toLowerCase().trim();
+
+  // Filter by search query if active
+  const filtered=q
+    ?vendors.filter(v=>v.name.toLowerCase().includes(q))
+    :vendors;
+
+  let html=`<div style="position:relative;margin-bottom:10px;">
+    <input class="fi" id="vendorSearchIn" type="text" placeholder="Search vendors…" value="${esc(vendorSearchQuery)}"
+      oninput="vendorSearchQuery=this.value;renderManage()"
+      style="padding-left:32px;font-size:13px;"/>
+    <span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:13px;color:var(--dim);pointer-events:none;">⌕</span>
+    ${q?`<button onclick="vendorSearchQuery='';renderManage()" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:0;">✕</button>`:''}
+  </div>`;
+
+  if(q){
+    // Flat search results — no grouping
+    if(!filtered.length){
+      html+='<div class="empty">No vendors match</div>';
+    } else {
+      filtered.sort((a,b)=>b.count-a.count).forEach(v=>{
+        const txnCount=txns.filter(t=>t.vendor===v.name).length;
+        const tp=dominantType(v.name);
+        html+=vendorRow(v,txnCount,typeColours[tp]);
+      });
+    }
+  } else {
+    // Grouped by dominant type
+    const grouped={regular:[],oneoff:[],income:[]};
+    [...vendors].sort((a,b)=>b.count-a.count).forEach(v=>{
+      grouped[dominantType(v.name)].push(v);
+    });
+    typeOrder.forEach(type=>{
+      const list=grouped[type];
+      if(!list.length)return;
+      const collapsed=manageVendorCollapsed[type];
+      html+=`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;cursor:pointer;border-bottom:1px solid var(--border);" onclick="toggleManageVendorSection('${type}')">
+        <span style="font-size:8px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:${typeColours[type]};">${typeLabels[type]}</span>
+        <span style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:9px;color:var(--dim);">${list.length}</span>
+          <span style="font-size:10px;color:var(--dim);display:inline-block;transform:rotate(${collapsed?'0':'90'}deg);">›</span>
+        </span>
+      </div>`;
+      if(!collapsed){
+        list.forEach(v=>{
+          const txnCount=txns.filter(t=>t.vendor===v.name).length;
+          html+=vendorRow(v,txnCount,typeColours[type]);
+        });
+      }
+    });
+  }
+
+  el.innerHTML=html||'<div class="empty">No vendors yet</div>';
+  // Re-focus search if query is active
+  if(q){const s=document.getElementById('vendorSearchIn');if(s){s.focus();s.setSelectionRange(s.value.length,s.value.length);}}
+}
+
+function vendorRow(v,txnCount,typeColour){
+  return`<div onclick="openVendorDetail('${esc(v.name)}')" style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);cursor:pointer;active:opacity:.7;">
+    <div style="width:7px;height:7px;border-radius:50%;background:${typeColour};flex-shrink:0;"></div>
+    <div style="flex:1;min-width:0;">
+      <div style="font-size:12px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(v.name)}</div>
+      <div style="font-size:9px;color:var(--dim);margin-top:1px;">${txnCount} transaction${txnCount!==1?'s':''}</div>
+    </div>
+    <span style="font-size:12px;color:var(--dim);">›</span>
+  </div>`;
+}
+
+let vendorDetailName='';
+
+function openVendorDetail(name){
+  vendorDetailName=name;
+  document.getElementById('vendorDetailTitle').textContent=name;
+  document.getElementById('vendorDetailRenameIn').value=name;
+  renderVendorDetailTxns();
+  openO('vendorDetailOverlay');
+}
+
+function renderVendorDetailTxns(){
+  const vTxns=[...txns.filter(t=>t.vendor===vendorDetailName)].sort((a,b)=>b.date.localeCompare(a.date));
+  const el=document.getElementById('vendorDetailTxns');
+  el.innerHTML=vTxns.length?vTxns.map(t=>`
+    <div class="swipe-wrap" data-id="${t.id}" data-overlay="vendorDetailOverlay">
+      <div class="swipe-edit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit</div>
+      <div class="swipe-del"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>Delete</div>
+      <div class="hist-item" style="background:var(--s1);padding:9px 10px;">
+        <div class="hi-l">
+          <div class="hi-v">${rLabel(t.reason)}</div>
+          <div class="hi-r2">${fmtDate(t.date)}${t.notes?' · '+esc(t.notes):''}</div>
+        </div>
+        <div class="hi-r">
+          <div class="hi-a" style="color:${t.type==='income'?'var(--income)':t.type==='oneoff'?'var(--oneoff)':'var(--text)'}">${t.type==='income'?'+':'-'}${fmtP2(t.amount)}</div>
+          <div class="hi-t">${t.type}</div>
+        </div>
       </div>
-      <button onclick="deleteVendor('${esc(v.name)}')" style="background:none;border:none;color:var(--dim);cursor:pointer;font-size:13px;padding:2px 4px;">✕</button>
-    </div>`;
-  }).join('');
+    </div>`).join(''):'<div class="empty">No transactions</div>';
+  initSwipeItems('vendorDetailTxns');
+}
+
+function applyVendorRename(){
+  const newName=document.getElementById('vendorDetailRenameIn').value.trim();
+  if(!newName||newName===vendorDetailName)return;
+  // Check if target name already exists — merge if so
+  txns.forEach(t=>{if(t.vendor===vendorDetailName)t.vendor=newName;});
+  const existing=vendors.find(v=>v.name===newName);
+  const old=vendors.find(v=>v.name===vendorDetailName);
+  if(existing&&old){existing.count+=old.count;vendors=vendors.filter(v=>v.name!==vendorDetailName);}
+  else if(old){old.name=newName;}
+  saveV();saveT();
+  vendorDetailName=newName;
+  document.getElementById('vendorDetailTitle').textContent=newName;
+  document.getElementById('vendorDetailRenameIn').value=newName;
+  renderVendorDetailTxns();
+  renderManage();
+}
+
+function deleteVendorFromDetail(){
+  const count=txns.filter(t=>t.vendor===vendorDetailName).length;
+  const msg=count>0
+    ?`Delete "${vendorDetailName}"? ${count} transaction${count!==1?'s':''} will have their vendor cleared.`
+    :`Delete "${vendorDetailName}"?`;
+  if(!confirm(msg))return;
+  txns.forEach(t=>{if(t.vendor===vendorDetailName)t.vendor='';});
+  vendors=vendors.filter(v=>v.name!==vendorDetailName);
+  saveV();saveT();
+  closeO('vendorDetailOverlay');
+  renderManage();renderAll();
 }
 
 function openCatColourPicker(id){
@@ -2765,6 +3020,12 @@ function setSavTab(tab){
     div.style.display=active?'':'none';
   });
   if(tab==='budget')renderBudget();
+  // When switching back to overview, redraw canvases which may have been skipped
+  if(tab==='overview'&&renderSavings._last){
+    const{recent,exclArr,inclArr}=renderSavings._last;
+    drawSavingsLine(recent,exclArr,inclArr);
+    drawLiqLine();
+  }
 }
 
 function getBudgetItems(curMk){
