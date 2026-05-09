@@ -3298,7 +3298,7 @@ function renderBudgetMiniBar(){
   bar.style.display='block';
   const pct=totalSpent/totalBudget;
   const fill=document.getElementById('budgetMiniBarFill');
-  fill.style.width=Math.min(pct,1.1)*100+'%';
+  fill.style.width=Math.min(pct/1.1,1)*100+'%';
   // Pace-based colour — only meaningful for current month
   const now=new Date();
   const isCurMonth=now.getFullYear()===viewMonth.getFullYear()&&now.getMonth()===viewMonth.getMonth();
@@ -3322,7 +3322,7 @@ function renderBudgetMiniBar(){
     const dim=new Date(viewMonth.getFullYear(),viewMonth.getMonth()+1,0).getDate();
     const dom=now.getDate();
     const pacePct=Math.min(dom/dim,1);
-    paceEl.style.left=pacePct*100+'%';
+    paceEl.style.left=Math.min(pacePct/1.1,1)*100+'%';
     paceEl.style.display='block';
     if(dailyEl){
       const remaining=Math.max(totalBudget-totalSpent,0);
