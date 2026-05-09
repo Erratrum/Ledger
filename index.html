@@ -209,9 +209,13 @@ canvas{display:block;}
     </div>
     <div style="display:flex;align-items:center;gap:12px;padding-right:6px;">
       <div class="hdr-spending" id="hdrSpending"></div>
-      <div id="budgetMiniBar" style="display:none;flex:1;height:3px;background:var(--s2);border-radius:2px;position:relative;">
-        <div id="budgetMiniBarFill" style="height:100%;border-radius:2px;transition:width .3s,background .3s;width:0;opacity:.7;"></div>
-        <div id="budgetMiniBarPace" style="position:absolute;top:50%;width:7px;height:7px;border-radius:50%;background:var(--text);transform:translate(-50%,-50%);box-shadow:0 0 0 1.5px var(--bg);display:none;"></div>
+      <div style="flex:1;position:relative;">
+        <div id="budgetMiniBar" style="display:none;height:4px;background:var(--s2);border-radius:2px;overflow:hidden;">
+          <div id="budgetMiniBarFill" style="height:100%;border-radius:2px;transition:width .3s,background .3s;width:0;opacity:.8;"></div>
+          <div style="position:absolute;top:0;bottom:0;left:calc(100%/1.1*0.75);width:1px;background:rgba(251,146,60,0.5);pointer-events:none;"></div>
+          <div style="position:absolute;top:0;bottom:0;left:calc(100%/1.1);width:1.5px;background:rgba(255,255,255,0.3);pointer-events:none;"></div>
+        </div>
+        <div id="budgetMiniBarPace" style="position:absolute;top:2px;width:7px;height:7px;border-radius:50%;background:var(--text);transform:translate(-50%,-50%);box-shadow:0 0 0 1.5px var(--bg);display:none;z-index:1;pointer-events:none;"></div>
       </div>
     </div>
   </header>
@@ -241,9 +245,6 @@ canvas{display:block;}
       </div>
       <div id="calGrid"></div>
       <div class="cal-legend" id="calLegend">
-        <div class="cal-leg-item"><div class="cal-leg-sw" style="background:var(--heat0);border:1px solid var(--border)"></div>£0</div>
-        <div class="cal-leg-item"><div class="cal-leg-sw" style="background:var(--heat2)"></div>Low</div>
-        <div class="cal-leg-item"><div class="cal-leg-sw" style="background:var(--heat4)"></div>High</div>
         <div class="cal-leg-item"><div class="cal-leg-sw" style="background:var(--s2);border:1px solid var(--oneoff)"></div>One-off</div>
         <div class="cal-leg-item"><div class="cal-leg-sw" style="background:var(--s2);border:1px solid var(--income)"></div>Income</div>
       </div>
@@ -481,6 +482,16 @@ canvas{display:block;}
         <button class="new-r-btn" onclick="addNewReason()">+</button>
       </div>
     </div>
+    <div id="catBudgetBar" style="display:none;margin:-4px 0 10px;padding:0 2px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+        <span style="font-size:9px;color:var(--muted);font-weight:600;letter-spacing:.06em;" id="catBudgetLabel"></span>
+        <span style="font-size:9px;font-weight:600;" id="catBudgetPct"></span>
+      </div>
+      <div style="height:3px;background:var(--s2);border-radius:2px;overflow:hidden;position:relative;">
+        <div id="catBudgetFill" style="height:100%;border-radius:2px;transition:width .25s,background .25s;width:0;"></div>
+        <div id="catBudget100" style="position:absolute;top:0;bottom:0;width:1.5px;background:rgba(255,255,255,0.25);"></div>
+      </div>
+    </div>
     <div class="fg">
       <label class="fl">Amount (£)</label>
       <div class="amt-display empty-val" id="amtDisplay">0.00</div>
@@ -652,7 +663,7 @@ canvas{display:block;}
   <div class="sheet">
     <div class="s-handle"></div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-      <div class="s-title display" id="optionsTitle" onclick="optionsTitleTap()" style="margin-bottom:0;cursor:default;user-select:none;">Options</div>
+      <div class="s-title display" id="optionsTitle" style="margin-bottom:0;cursor:default;user-select:none;">Options</div>
       <button onclick="deleteAllData()" style="background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.3);border-radius:8px;color:var(--danger);font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;padding:6px 12px;cursor:pointer;">Delete all data</button>
     </div>
     <div class="fg">
@@ -732,6 +743,9 @@ const saveC=()=>localStorage.setItem(K_CUR,curLiq);
 const saveA=()=>persist(K_ACC,accounts);
 const saveX=()=>persist(K_XFR,transfers);
 const saveSym=()=>localStorage.setItem(K_SYM,currencySymbol);
+const K_BUDGET='ldgr_budget_v1';
+let budgets=JSON.parse(localStorage.getItem(K_BUDGET)||'{}');
+const saveBudgets=()=>localStorage.setItem(K_BUDGET,JSON.stringify(budgets));
 
 // ── UTILS ────────────────────────────────────────────────────────────────────
 const fmtP=(n,d=0)=>currencySymbol+Math.abs(n).toLocaleString('en-GB',{minimumFractionDigits:d,maximumFractionDigits:d});
@@ -1434,23 +1448,44 @@ function drawVendorTrend(vendor){
   const months=[];
   for(let i=5;i>=0;i--){const d=new Date(viewMonth);d.setMonth(d.getMonth()-i);months.push({mk:mkey(d),label:d.toLocaleDateString('en-GB',{month:'short'})});}
   const vals=months.map(m=>txns.filter(t=>t.vendor===vendor&&t.date.startsWith(m.mk)&&t.type!=='income').reduce((s,t)=>s+t.amount,0));
+  const freqs=months.map(m=>txns.filter(t=>t.vendor===vendor&&t.date.startsWith(m.mk)&&t.type!=='income').length);
   const maxV=Math.max(...vals,1);
-  const pad={t:14,b:22,l:28,r:8};
-  drawYAxis(ctx,pad,H,0,maxV,W);
+  const maxF=Math.max(...freqs,1);
+  const padR=28;
+  const pad={t:14,b:22,l:28,r:padR};
+  drawYAxis(ctx,pad,H,0,maxV,W-padR);
   const cW=W-pad.l-pad.r,cH=H-pad.t-pad.b;
   const n=months.length;
   function px(i){return pad.l+(i/Math.max(n-1,1))*cW;}
   function py(v){return pad.t+cH-((v/maxV)*cH);}
+  function pyF(f){return pad.t+cH-((f/maxF)*cH);}
 
-  // Fill
+  // Right y-axis — frequency in blue
+  ctx.save();
+  ctx.font='500 8px JetBrains Mono,monospace';ctx.fillStyle='#60a5fa99';
+  ctx.textAlign='left';ctx.textBaseline='middle';
+  const fTicks=[0,Math.ceil(maxF/2),maxF];
+  fTicks.forEach(f=>{
+    const y=pyF(f);
+    ctx.fillText(f+'×',W-padR+4,y);
+  });
+  ctx.restore();
+
+  // Fill + spend line
   ctx.beginPath();
   vals.forEach((v,i)=>{i?ctx.lineTo(px(i),py(v)):ctx.moveTo(px(i),py(v));});
   ctx.lineTo(px(n-1),pad.t+cH);ctx.lineTo(px(0),pad.t+cH);ctx.closePath();
   ctx.fillStyle='rgba(167,139,250,0.08)';ctx.fill();
-  // Line
   ctx.beginPath();ctx.strokeStyle='#a78bfa';ctx.lineWidth=2;
   vals.forEach((v,i)=>{i?ctx.lineTo(px(i),py(v)):ctx.moveTo(px(i),py(v));});ctx.stroke();
   vals.forEach((v,i)=>{ctx.beginPath();ctx.arc(px(i),py(v),3,0,Math.PI*2);ctx.fillStyle='#a78bfa';ctx.fill();});
+
+  // Frequency line in blue
+  ctx.beginPath();ctx.strokeStyle='#60a5fa';ctx.lineWidth=1.5;ctx.setLineDash([4,3]);
+  freqs.forEach((f,i)=>{i?ctx.lineTo(px(i),pyF(f)):ctx.moveTo(px(i),pyF(f));});ctx.stroke();
+  ctx.setLineDash([]);
+  freqs.forEach((f,i)=>{ctx.beginPath();ctx.arc(px(i),pyF(f),2.5,0,Math.PI*2);ctx.fillStyle='#60a5fa';ctx.fill();});
+
   ctx.fillStyle='#6b6b88';ctx.font='500 9px JetBrains Mono,monospace';ctx.textAlign='center';
   months.forEach((m,i)=>ctx.fillText(m.label,px(i),H-5));
 }
@@ -1591,9 +1626,19 @@ function drawLiqLine(){
     return{acc,color:accColors[i%accColors.length],sorted};
   }).filter(a=>a.sorted.length>0);
 
-  const toPlot=mode==='spending'
+  const toPlotRaw=mode==='spending'
     ?accsWithData.filter(a=>a.acc.isSpending)
     :accsWithData;
+
+  // Order: spending first, then non-spending by earliest entry date (oldest→newest)
+  const toPlot=[
+    ...toPlotRaw.filter(a=>a.acc.isSpending),
+    ...[...toPlotRaw.filter(a=>!a.acc.isSpending)].sort((a,b)=>{
+      const aFirst=a.sorted[0]?.month||'9999';
+      const bFirst=b.sorted[0]?.month||'9999';
+      return aFirst.localeCompare(bFirst);
+    }),
+  ];
 
   if(toPlot.length===0){
     ctx.fillStyle='#6b6b88';ctx.font='500 11px JetBrains Mono,monospace';ctx.textAlign='center';ctx.textBaseline='middle';
@@ -2262,6 +2307,7 @@ function renderCatSection(){
       const r=reasons.find(x=>x.id===inf.reason);
       if(r){
         selReason=inf.reason;
+        renderCatBudgetBar(inf.reason);
         inferred.style.display='flex';
         inferred.className='cat-inferred';
         inferred.innerHTML=`<span class="cat-inferred-lbl">↳ ${r.label}</span><button class="cat-inferred-change" onclick="showFullCatGrid()">change</button>`;
@@ -2288,6 +2334,7 @@ function renderCatSection(){
 function showFullCatGrid(){
   document.getElementById('catInferred').style.display='none';
   document.getElementById('catConflict').style.display='none';
+  const cb=document.getElementById('catBudgetBar');if(cb&&!selReason)cb.style.display='none';
   const grid=document.getElementById('reasonGrid');
   const newRow=document.getElementById('newReasonRow');
   grid.style.display='grid';
@@ -2308,6 +2355,7 @@ function openAddSheet(){
   document.getElementById('notesIn').value='';
   document.getElementById('dateIn').value=todayStr();
   const n=document.getElementById('incomeNote');if(n)n.style.display='none';
+  const cb=document.getElementById('catBudgetBar');if(cb)cb.style.display='none';
   openO('addOverlay');
 }
 function setType(t){
@@ -2320,19 +2368,38 @@ function setType(t){
 function updateTypeBtns(){document.querySelectorAll('.type-opt').forEach(b=>{b.classList.toggle('sel',b.dataset.type===txnType);});}
 function selR(id){
   selReason=id;
-  // Re-render just the pills to show selection state
   const grid=document.getElementById('reasonGrid');
   if(grid.style.display!=='none'){
     const filt=reasons.filter(r=>r.type===txnType).sort((a,b)=>b.count-a.count);
     grid.innerHTML=filt.map(r=>`<button class="rpill${selReason===r.id?' sel':''}" onclick="selR('${r.id}')">${r.label}</button>`).join('');
   }
-  // Also update conflict picker if visible
   const conflict=document.getElementById('catConflict');
   if(conflict.style.display!=='none'){
     conflict.querySelectorAll('.cat-conflict-opt').forEach(b=>{
       b.classList.toggle('sel',b.getAttribute('onclick')&&b.getAttribute('onclick').includes("'"+id+"'"));
     });
   }
+  renderCatBudgetBar(id);
+}
+
+function renderCatBudgetBar(reasonId){
+  const wrap=document.getElementById('catBudgetBar');
+  if(!wrap)return;
+  const budget=budgets[reasonId]||0;
+  if(!budget||txnType==='income'){wrap.style.display='none';return;}
+  const curMk=mkey(viewMonth);
+  const spent=txns.filter(t=>t.reason===reasonId&&t.date.startsWith(curMk)&&t.type!=='income').reduce((s,t)=>s+t.amount,0);
+  const pct=spent/budget;
+  const pctCapped=Math.min(pct,1.1);
+  const w100=100/1.1; // % position of 100% marker within 110% track
+  document.getElementById('catBudgetLabel').textContent=rLabel(reasonId)+' budget';
+  const pctEl=document.getElementById('catBudgetPct');
+  pctEl.textContent=fmtP2(spent)+' / '+fmtP2(budget);
+  pctEl.style.color=pct>1?'#f87171':pct>=0.75?'#fb923c':'var(--muted)';
+  document.getElementById('catBudgetFill').style.width=pctCapped/1.1*100+'%';
+  document.getElementById('catBudgetFill').style.background=budgetBarColour(Math.min(pct,1));
+  document.getElementById('catBudget100').style.left=w100+'%';
+  wrap.style.display='block';
 }
 function addNewReason(){
   const inp=document.getElementById('newReasonIn'),lbl=inp.value.trim();
@@ -2620,144 +2687,6 @@ function deleteAllData(){
   renderAll();
 }
 
-let _optionsTapCount=0,_optionsTapTimer=null;
-function optionsTitleTap(){
-  _optionsTapCount++;
-  clearTimeout(_optionsTapTimer);
-  _optionsTapTimer=setTimeout(()=>{_optionsTapCount=0;},600);
-  if(_optionsTapCount>=3){
-    _optionsTapCount=0;
-    loadTestData();
-  }
-}
-
-function loadTestData(){
-  if(txns.length&&!confirm('This will replace all your data with test data. Continue?'))return;
-  const now = new Date();
-  function mk(monthOffset, day){
-    const d = new Date(now.getFullYear(), now.getMonth()+monthOffset, day);
-    return d.toISOString().split('T')[0];
-  }
-  function liqMk(monthOffset){
-    const d=new Date(now.getFullYear(),now.getMonth()+monthOffset,1);
-    return mkey(d);
-  }
-  const uid = () => Math.random().toString(36).slice(2);
-
-  txns = [
-    // This month — regular
-    {id:uid(),type:'regular',vendor:'Tesco',reason:'groceries',amount:54.30,date:mk(0,2),notes:''},
-    {id:uid(),type:'regular',vendor:'Tesco',reason:'groceries',amount:61.20,date:mk(0,9),notes:''},
-    {id:uid(),type:'regular',vendor:'Pret',reason:'lunch',amount:8.50,date:mk(0,3),notes:''},
-    {id:uid(),type:'regular',vendor:'Pret',reason:'lunch',amount:7.90,date:mk(0,7),notes:''},
-    {id:uid(),type:'regular',vendor:'Pret',reason:'lunch',amount:9.10,date:mk(0,11),notes:''},
-    {id:uid(),type:'regular',vendor:'Uber',reason:'transport',amount:14.20,date:mk(0,4),notes:''},
-    {id:uid(),type:'regular',vendor:'TfL',reason:'transport',amount:38.40,date:mk(0,1),notes:'Monthly pass'},
-    {id:uid(),type:'regular',vendor:'Gym',reason:'health',amount:45.00,date:mk(0,1),notes:''},
-    {id:uid(),type:'regular',vendor:'Netflix',reason:'personal',amount:17.99,date:mk(0,1),notes:''},
-    {id:uid(),type:'regular',vendor:'Dishoom',reason:'dinner',amount:68.00,date:mk(0,6),notes:'Date night'},
-    {id:uid(),type:'regular',vendor:'EDF Energy',reason:'utilities',amount:92.00,date:mk(0,2),notes:''},
-    // This month — one-off
-    {id:uid(),type:'oneoff',vendor:'ASOS',reason:'clothing',amount:124.00,date:mk(0,5),notes:'Winter jacket'},
-    {id:uid(),type:'oneoff',vendor:'Apple',reason:'tech_games',amount:329.00,date:mk(0,8),notes:'AirPods'},
-    {id:uid(),type:'oneoff',vendor:'John Lewis',reason:'home',amount:89.50,date:mk(0,10),notes:'Bedding'},
-    // This month — income
-    {id:uid(),type:'income',vendor:'Employer',reason:'salary',amount:3200.00,date:mk(0,1),notes:''},
-    // Last month
-    {id:uid(),type:'regular',vendor:'Tesco',reason:'groceries',amount:48.60,date:mk(-1,5),notes:''},
-    {id:uid(),type:'regular',vendor:'Tesco',reason:'groceries',amount:55.10,date:mk(-1,19),notes:''},
-    {id:uid(),type:'regular',vendor:'Pret',reason:'lunch',amount:8.20,date:mk(-1,6),notes:''},
-    {id:uid(),type:'regular',vendor:'Pret',reason:'lunch',amount:7.50,date:mk(-1,14),notes:''},
-    {id:uid(),type:'regular',vendor:'TfL',reason:'transport',amount:38.40,date:mk(-1,1),notes:''},
-    {id:uid(),type:'regular',vendor:'Uber',reason:'transport',amount:9.80,date:mk(-1,22),notes:''},
-    {id:uid(),type:'regular',vendor:'Gym',reason:'health',amount:45.00,date:mk(-1,1),notes:''},
-    {id:uid(),type:'regular',vendor:'Netflix',reason:'personal',amount:17.99,date:mk(-1,1),notes:''},
-    {id:uid(),type:'regular',vendor:'EDF Energy',reason:'utilities',amount:88.00,date:mk(-1,3),notes:''},
-    {id:uid(),type:'regular',vendor:'Dishoom',reason:'dinner',amount:45.00,date:mk(-1,15),notes:''},
-    {id:uid(),type:'oneoff',vendor:'Ryanair',reason:'flights',amount:210.00,date:mk(-1,10),notes:'Barcelona trip'},
-    {id:uid(),type:'oneoff',vendor:'ASOS',reason:'clothing',amount:67.00,date:mk(-1,18),notes:''},
-    {id:uid(),type:'income',vendor:'Employer',reason:'salary',amount:3200.00,date:mk(-1,1),notes:''},
-    // 2 months ago
-    {id:uid(),type:'regular',vendor:'Tesco',reason:'groceries',amount:52.40,date:mk(-2,4),notes:''},
-    {id:uid(),type:'regular',vendor:'Waitrose',reason:'groceries',amount:34.20,date:mk(-2,18),notes:''},
-    {id:uid(),type:'regular',vendor:'Pret',reason:'lunch',amount:9.00,date:mk(-2,8),notes:''},
-    {id:uid(),type:'regular',vendor:'TfL',reason:'transport',amount:38.40,date:mk(-2,1),notes:''},
-    {id:uid(),type:'regular',vendor:'Gym',reason:'health',amount:45.00,date:mk(-2,1),notes:''},
-    {id:uid(),type:'regular',vendor:'Netflix',reason:'personal',amount:17.99,date:mk(-2,1),notes:''},
-    {id:uid(),type:'regular',vendor:'EDF Energy',reason:'utilities',amount:95.00,date:mk(-2,2),notes:''},
-    {id:uid(),type:'regular',vendor:'Nandos',reason:'dinner',amount:28.50,date:mk(-2,12),notes:''},
-    {id:uid(),type:'oneoff',vendor:'Zara',reason:'clothing',amount:155.00,date:mk(-2,20),notes:''},
-    {id:uid(),type:'oneoff',vendor:'Amazon',reason:'tech_games',amount:49.99,date:mk(-2,14),notes:'Kindle book bundle'},
-    {id:uid(),type:'income',vendor:'Employer',reason:'salary',amount:3200.00,date:mk(-2,1),notes:''},
-    {id:uid(),type:'income',vendor:'Monzo',reason:'freelance',amount:450.00,date:mk(-2,15),notes:'Side project'},
-    // 3 months ago
-    {id:uid(),type:'regular',vendor:'Tesco',reason:'groceries',amount:49.80,date:mk(-3,6),notes:''},
-    {id:uid(),type:'regular',vendor:'Tesco',reason:'groceries',amount:58.30,date:mk(-3,20),notes:''},
-    {id:uid(),type:'regular',vendor:'Pret',reason:'lunch',amount:7.80,date:mk(-3,9),notes:''},
-    {id:uid(),type:'regular',vendor:'TfL',reason:'transport',amount:38.40,date:mk(-3,1),notes:''},
-    {id:uid(),type:'regular',vendor:'Gym',reason:'health',amount:45.00,date:mk(-3,1),notes:''},
-    {id:uid(),type:'regular',vendor:'Netflix',reason:'personal',amount:15.99,date:mk(-3,1),notes:''},
-    {id:uid(),type:'regular',vendor:'EDF Energy',reason:'utilities',amount:112.00,date:mk(-3,2),notes:'Winter spike'},
-    {id:uid(),type:'regular',vendor:'Dishoom',reason:'dinner',amount:82.00,date:mk(-3,25),notes:'Birthday dinner'},
-    {id:uid(),type:'oneoff',vendor:'Booking.com',reason:'flights',amount:380.00,date:mk(-3,8),notes:'Hotel Barcelona'},
-    {id:uid(),type:'income',vendor:'Employer',reason:'salary',amount:3200.00,date:mk(-3,1),notes:''},
-  ];
-
-  // Reset accounts
-  accounts=[{id:'spending',name:'Spending',balance:0,notes:'Main spending account',isSpending:true}];
-  const sp=accounts[0];
-  sp.balance=txns.reduce((s,t)=>t.type==='income'?s+t.amount:s-t.amount,0);
-  accounts.push({id:'isa',name:'Vanguard ISA',balance:14820.00,notes:'S&S ISA',isSpending:false});
-  accounts.push({id:'emergency',name:'Emergency Fund',balance:5000.00,notes:'Easy access savings',isSpending:false});
-
-  // Liquidity snapshots
-  liqData=[
-    {month:liqMk(-5),amount:1340.00,accountId:'spending',estimated:false},
-    {month:liqMk(-4),amount:1240.00,accountId:'spending',estimated:false},
-    {month:liqMk(-3),amount:820.00, accountId:'spending',estimated:false},
-    {month:liqMk(-2),amount:1510.00,accountId:'spending',estimated:false},
-    {month:liqMk(-1),amount:1190.00,accountId:'spending',estimated:false},
-    {month:liqMk(-5),amount:12200.00,accountId:'isa',date:mk(-5,28)},
-    {month:liqMk(-4),amount:12600.00,accountId:'isa',date:mk(-4,28)},
-    {month:liqMk(-3),amount:13050.00,accountId:'isa',date:mk(-3,28)},
-    {month:liqMk(-2),amount:13500.00,accountId:'isa',date:mk(-2,28)},
-    {month:liqMk(-1),amount:14180.00,accountId:'isa',date:mk(-1,28)},
-    {month:liqMk(0), amount:14820.00,accountId:'isa',date:mk(0,1)},
-    {month:liqMk(-5),amount:5000.00,accountId:'emergency',date:mk(-5,1)},
-    {month:liqMk(-3),amount:5000.00,accountId:'emergency',date:mk(-3,1)},
-    {month:liqMk(0), amount:5000.00,accountId:'emergency',date:mk(0,1)},
-  ];
-
-  // Reset reasons to defaults
-  reasons=defaultReasons();
-
-  // Populate vendors
-  vendors=[];
-  txns.forEach(t=>{
-    if(!t.vendor)return;
-    const v=vendors.find(x=>x.name===t.vendor);
-    if(v)v.count++;else vendors.push({name:t.vendor,count:1});
-  });
-  vendors.sort((a,b)=>b.count-a.count);
-
-  transfers=[];
-  budgets={
-    groceries: 100,
-    lunch: 30,      // will be over — Pret 3x = £25.50 but close
-    dinner: 60,     // under
-    transport: 80,  // under
-    utilities: 90,  // over — EDF is £92
-    health: 50,     // under
-    personal: 20,   // under
-    __oneoff__: 200, // over — Apple + ASOS + John Lewis = £542.50
-  };
-  saveT();saveA();saveV();saveL();saveR();saveX();saveBudgets();
-  crystallisePastMonths();
-  closeO('optionsOverlay');
-  renderAll();
-  setTimeout(()=>alert('Test data loaded!'),100);
-}
-// ── END TEST DATA ─────────────────────────────────────────────────────────────
 
 // ── MANAGE CATEGORIES & VENDORS ───────────────────────────────────────────────
 const CAT_SWATCHES=['#4ade80','#60a5fa','#fb923c','#f472b6','#facc15','#34d399','#f87171','#818cf8','#38bdf8','#a3e635','#fb7185','#e879f9','#2dd4bf','#fbbf24','#94a3b8','#c084fc'];
@@ -3065,11 +2994,6 @@ function deleteVendor(name){
 // ── END MANAGE ────────────────────────────────────────────────────────────────
 
 // ── BUDGET ────────────────────────────────────────────────────────────────────
-// budgets stored as { [reasonId]: amount }
-const K_BUDGET='ldgr_budget_v1';
-let budgets=JSON.parse(localStorage.getItem(K_BUDGET)||'{}');
-const saveBudgets=()=>localStorage.setItem(K_BUDGET,JSON.stringify(budgets));
-
 let currentSavTab='overview';
 
 function setSavTab(tab){
@@ -3102,7 +3026,7 @@ function getBudgetItems(curMk){
       spent:monthTxns.filter(t=>t.reason===r.id&&t.type==='regular').reduce((s,t)=>s+t.amount,0),
       budget:budgets[r.id]||0
     })),
-    {id:'__oneoff__',label:'One-Off (all)',colour:'var(--oneoff)',spent:ooSpent,budget:budgets['__oneoff__']||0}
+    {id:'__oneoff__',label:'One-Off (all)',colour:'#6b6b88',spent:ooSpent,budget:budgets['__oneoff__']||0}
   ];
 }
 
@@ -3253,21 +3177,26 @@ function drawBudgetChart(sorted,totalBudget,totalSpent){
   const ROW=28;
   const H=n*ROW+16;
   const{ctx,W}=setupCanvas('budgetChart',H);
-  const pad={t:4,b:4,l:72,r:44};
+  // plotW = width representing 120% of budget — bars capped at 120%
+  const CHART_MAX=1.1;
+  const pad={t:14,b:4,l:72,r:32};
   const plotW=W-pad.l-pad.r;
+  const w100=plotW/CHART_MAX; // px width = 100% of budget
 
-  // Vertical grid lines at 0,25,50,75,100%
-  [0,25,50,75,100].forEach(pct=>{
-    const x=pad.l+(pct/100)*plotW;
-    ctx.strokeStyle=pct===75?'rgba(255,255,255,0.18)':'rgba(46,46,69,0.5)';
-    ctx.lineWidth=pct===75?1:0.5;
-    ctx.setLineDash(pct===75?[3,4]:[]);
+  // Vertical grid lines at 0, 75, 100 only
+  [{pct:0,col:'rgba(46,46,69,0.5)',dash:[],lw:0.5},
+   {pct:75,col:'rgba(251,146,60,0.4)',dash:[3,4],lw:1},
+   {pct:100,col:'rgba(255,255,255,0.25)',dash:[],lw:1.5},
+  ].forEach(({pct,col,dash,lw})=>{
+    const x=pad.l+(pct/100)*w100;
+    if(x>W-pad.r+1)return;
+    ctx.strokeStyle=col;ctx.lineWidth=lw;ctx.setLineDash(dash);
     ctx.beginPath();ctx.moveTo(x,pad.t);ctx.lineTo(x,H-pad.b);ctx.stroke();
     ctx.setLineDash([]);
-    // % label at top
-    ctx.fillStyle='#3a3a55';ctx.font='500 8px JetBrains Mono,monospace';
+    ctx.fillStyle=pct===100?'rgba(255,255,255,0.3)':pct===75?'rgba(251,146,60,0.5)':'#3a3a55';
+    ctx.font=`${pct===100?'600':'500'} 8px JetBrains Mono,monospace`;
     ctx.textAlign='center';ctx.textBaseline='top';
-    ctx.fillText(pct+'%',x,pad.t);
+    if(pct>0)ctx.fillText(pct+'%',x,1);
   });
 
   byFreq.forEach((item,i)=>{
@@ -3275,67 +3204,72 @@ function drawBudgetChart(sorted,totalBudget,totalSpent){
     const barH=Math.min(ROW*0.52,14);
     const hasBudget=item.budget>0;
     const pct=hasBudget?item.spent/item.budget:0;
+    const pctCapped=Math.min(pct,CHART_MAX);
     const color=hasBudget?budgetBarColour(pct):'#3a3a55';
 
-    // Label on left — text, then colour dot immediately before the bar
+    // Label left
     const label=item.label.length>8?item.label.slice(0,7)+'…':item.label;
     ctx.textBaseline='middle';ctx.font='500 9px JetBrains Mono,monospace';
     ctx.textAlign='right';ctx.fillStyle='#6b6b88';
     ctx.fillText(label,pad.l-14,y);
-    // colour dot sits between text and bar
     ctx.beginPath();ctx.arc(pad.l-6,y,3.5,0,Math.PI*2);
     ctx.fillStyle=item.colour||'#6b6b88';ctx.fill();
 
-    // Track (full width = 100% of budget)
+    // Track (full width = 120% zone)
     ctx.fillStyle='#1a1a26';
     ctx.beginPath();ctx.roundRect(pad.l,y-barH/2,plotW,barH,3);ctx.fill();
 
-    // Budget ceiling marker (right edge of track = 100%)
+    // 75% marker line on track
     if(hasBudget){
-      ctx.strokeStyle='rgba(255,255,255,0.2)';ctx.lineWidth=1.5;
-      ctx.beginPath();ctx.moveTo(pad.l+plotW,y-barH/2-1);ctx.lineTo(pad.l+plotW,y+barH/2+1);ctx.stroke();
+      const x75=pad.l+0.75*w100;
+      ctx.strokeStyle='rgba(251,146,60,0.35)';ctx.lineWidth=1;ctx.setLineDash([2,3]);
+      ctx.beginPath();ctx.moveTo(x75,y-barH/2);ctx.lineTo(x75,y+barH/2);ctx.stroke();
+      ctx.setLineDash([]);
+      // 100% marker
+      const x100=pad.l+w100;
+      ctx.strokeStyle='rgba(255,255,255,0.3)';ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.moveTo(x100,y-barH/2-1);ctx.lineTo(x100,y+barH/2+1);ctx.stroke();
     }
 
-    const fillW=hasBudget?Math.min(pct,1)*plotW:item.spent>0?plotW*0.5:0;
-
-    if(fillW>0){
+    // Bar fill
+    if(hasBudget&&pct>0){
       const isOver=pct>1;
+      const fillW=Math.min(pct,1)*w100;
       if(isOver){
-        // Full bar in danger colour up to 100%
+        // 0→100% red fill
         ctx.fillStyle='#f87171';
-        ctx.beginPath();ctx.roundRect(pad.l,y-barH/2,plotW,barH,3);ctx.fill();
-        // Hatched overflow section — clipped to overflow rect only
-        const overW=Math.min((pct-1),0.4)*plotW;
-        const overX=pad.l+plotW;
+        ctx.beginPath();ctx.roundRect(pad.l,y-barH/2,w100,barH,3);ctx.fill();
+        // 100→actual% hatch (capped at 120%)
+        const overW=(pctCapped-1)*w100;
+        const overX=pad.l+w100;
         ctx.save();
         ctx.beginPath();ctx.rect(overX,y-barH/2,overW,barH);ctx.clip();
-        ctx.fillStyle='rgba(10,10,15,0.45)';
-        ctx.fillRect(overX,y-barH/2,overW,barH);
-        ctx.strokeStyle='rgba(248,113,113,0.7)';ctx.lineWidth=2;ctx.setLineDash([3,3]);
+        ctx.fillStyle='rgba(10,10,15,0.5)';ctx.fillRect(overX,y-barH/2,overW,barH);
+        ctx.strokeStyle='rgba(248,113,113,0.8)';ctx.lineWidth=2;ctx.setLineDash([3,3]);
         for(let hx=overX-barH;hx<overX+overW+barH;hx+=6){
           ctx.beginPath();ctx.moveTo(hx,y-barH/2);ctx.lineTo(hx+barH,y+barH/2);ctx.stroke();
         }
-        ctx.setLineDash([]);
-        ctx.restore();
-        // Explicitly reset clip after restore so nothing leaks
-        ctx.save();ctx.restore();
+        ctx.setLineDash([]);ctx.restore();
       } else {
         ctx.fillStyle=color;
         ctx.beginPath();ctx.roundRect(pad.l,y-barH/2,fillW,barH,3);ctx.fill();
       }
+    } else if(!hasBudget&&item.spent>0){
+      ctx.fillStyle='#3a3a55';
+      ctx.beginPath();ctx.roundRect(pad.l,y-barH/2,w100*0.5,barH,3);ctx.fill();
     }
 
-    // % label on right
+    // % label right
     if(hasBudget){
       const isOver=pct>1;
-      ctx.fillStyle=isOver?'#f87171':pct>0?color:'#3a3a55';
+      ctx.fillStyle=isOver?'#f87171':pct>=0.75?budgetBarColour(pct):'#6b6b88';
       ctx.font=`${isOver?'700':'600'} 9px JetBrains Mono,monospace`;
       ctx.textAlign='left';ctx.textBaseline='middle';
-      ctx.fillText((isOver?'+':'')+Math.round(pct*100)+'%',pad.l+plotW+6,y);
+      ctx.fillText((isOver?'+':'')+Math.round(pct*100)+'%',pad.l+plotW+4,y);
     } else {
       ctx.fillStyle='#3a3a55';ctx.font='500 9px JetBrains Mono,monospace';
       ctx.textAlign='left';ctx.textBaseline='middle';
-      ctx.fillText('—',pad.l+plotW+6,y);
+      ctx.fillText('—',pad.l+plotW+4,y);
     }
   });
 }
@@ -3364,11 +3298,25 @@ function renderBudgetMiniBar(){
   bar.style.display='block';
   const pct=totalSpent/totalBudget;
   const fill=document.getElementById('budgetMiniBarFill');
-  fill.style.width=Math.min(pct,1.08)*100+'%';
-  fill.style.background=budgetBarColour(Math.min(pct,1));
-  // Pace marker + daily budget — only for the current month
+  fill.style.width=Math.min(pct,1.1)*100+'%';
+  // Pace-based colour — only meaningful for current month
   const now=new Date();
   const isCurMonth=now.getFullYear()===viewMonth.getFullYear()&&now.getMonth()===viewMonth.getMonth();
+  let fillColour;
+  if(isCurMonth){
+    const dim=new Date(viewMonth.getFullYear(),viewMonth.getMonth()+1,0).getDate();
+    const pacePct=now.getDate()/dim; // how far through month
+    const ratio=pct/pacePct;        // spend ratio vs pace (1.0 = exactly on pace)
+    if(ratio<0.85)fillColour='#4ade80';          // green — under pace
+    else if(ratio<1.1)fillColour='#facc15';      // yellow — on pace / slightly over
+    else if(ratio<1.3)fillColour='#fb923c';      // orange — noticeably over
+    else fillColour='#f87171';                   // red — very over
+  } else {
+    // Past/future month — just use spend vs budget
+    fillColour=budgetBarColour(Math.min(pct,1));
+  }
+  fill.style.background=fillColour;
+  // Pace marker + daily budget — only for the current month
   const paceEl=document.getElementById('budgetMiniBarPace');
   if(isCurMonth){
     const dim=new Date(viewMonth.getFullYear(),viewMonth.getMonth()+1,0).getDate();
