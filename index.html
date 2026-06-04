@@ -201,7 +201,7 @@ canvas{display:block;}
         </div>
         <div style="display:flex;align-items:center;gap:8px;">
           <span id="hdrDailyBudget" style="display:none;font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;font-weight:600;letter-spacing:.02em;"></span>
-          <button onclick="renderCurrencyPills();renderManage();openO('optionsOverlay')" style="background:none;border:none;cursor:pointer;padding:2px 6px;opacity:0.4;display:flex;align-items:center;justify-content:center;" title="Settings">
+          <button onclick="renderCurrencyPills();renderManage();renderOutlierSDInput();openO('optionsOverlay')" style="background:none;border:none;cursor:pointer;padding:2px 6px;opacity:0.4;display:flex;align-items:center;justify-content:center;" title="Settings">
             <svg viewBox="0 0 100 100" width="15" height="15" xmlns="http://www.w3.org/2000/svg" id="gearIcon"></svg>
           </button>
         </div>
@@ -276,11 +276,18 @@ canvas{display:block;}
         <div id="stackLegend" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;"></div>
       </div>
       <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-          <div class="card-title" style="margin-bottom:0;">Category Spend Over Time</div>
-          <select class="proj-sel" id="catTrendSel" onchange="renderTrends()">
-            <option value="">All categories</option>
-          </select>
+        <div style="margin-bottom:10px;">
+          <div class="card-title" style="margin-bottom:8px;">Category Spend Over Time</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+            <div style="display:flex;gap:4px;" id="catTrendTypeFilter" data-value="regular">
+              <button onclick="setCatTrendType('regular',this)" style="background:var(--regular);border:1px solid var(--regular);border-radius:6px;color:#000;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;padding:5px 12px;cursor:pointer;">Regular</button>
+              <button onclick="setCatTrendType('oneoff',this)" style="background:var(--s2);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;padding:5px 12px;cursor:pointer;">One-off</button>
+              <button onclick="setCatTrendType('all',this)" style="background:var(--s2);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;padding:5px 12px;cursor:pointer;">All</button>
+            </div>
+            <select class="proj-sel" id="catTrendSel" onchange="renderTrends()">
+              <option value="">All</option>
+            </select>
+          </div>
         </div>
         <canvas id="catTrendChart" height="140"></canvas>
         <div id="catTrendLegend" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;"></div>
@@ -666,7 +673,7 @@ canvas{display:block;}
       <div class="s-title display" id="optionsTitle" style="margin-bottom:0;cursor:default;user-select:none;">Options</div>
       <button onclick="deleteAllData()" style="background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.3);border-radius:8px;color:var(--danger);font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;padding:6px 12px;cursor:pointer;">Delete all data</button>
     </div>
-    <div class="fg">
+    <div class="fg" style="margin-bottom:20px;">
       <label class="fl">Currency Symbol</label>
       <div style="display:flex;gap:6px;flex-wrap:wrap;" id="currencyPills"></div>
       <div style="display:flex;gap:6px;margin-top:8px;">
@@ -674,7 +681,15 @@ canvas{display:block;}
         <button class="btn" style="flex:1;padding:10px;font-size:12px;" onclick="setCustomCurrency()">Set</button>
       </div>
     </div>
-    <div class="card" style="margin-top:4px;">
+    <div class="fg" style="margin-bottom:20px;">
+      <label class="fl">Trend Outlier Cap <span style="color:var(--dim);font-weight:400">(SD threshold · current: <span id="outlierSDLabel">2σ</span>)</span></label>
+      <div style="display:flex;gap:6px;">
+        <input class="fi" id="outlierSDIn" type="number" min="1" max="5" step="0.5" style="width:80px;flex-shrink:0;"/>
+        <button class="btn" style="flex:1;padding:12px;font-size:12px;margin-top:0;" onclick="setOutlierSD()">Set</button>
+      </div>
+      <div style="font-size:9px;color:var(--dim);margin-top:5px;line-height:1.5;">Values more than Nσ above the mean are treated as outliers. Y axis capped at 2.1× the remaining mean.</div>
+    </div>
+    <div class="card" style="margin-top:8px;">
       <div class="card-title">Data & Backup</div>
       <div id="storageStatus" style="font-size:10px;color:var(--muted);margin-bottom:12px;padding:8px 10px;background:var(--s2);border-radius:8px;"></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
@@ -684,7 +699,7 @@ canvas{display:block;}
       <input type="file" id="importFile" accept=".json" style="display:none;" onchange="importData(event)"/>
       <div style="font-size:9px;color:var(--dim);margin-top:8px;line-height:1.6;">Export saves everything. Import fully restores from backup.</div>
     </div>
-    <div class="card" style="margin-top:4px;">
+    <div class="card" style="margin-top:8px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
         <div class="card-title" style="margin-bottom:0;">Manage</div>
         <div style="display:flex;gap:4px;" id="manageTabs">
@@ -746,6 +761,9 @@ const saveSym=()=>localStorage.setItem(K_SYM,currencySymbol);
 const K_BUDGET='ldgr_budget_v1';
 let budgets=JSON.parse(localStorage.getItem(K_BUDGET)||'{}');
 const saveBudgets=()=>localStorage.setItem(K_BUDGET,JSON.stringify(budgets));
+const K_OUTLIER='ldgr_outlier_v1';
+let outlierSD=parseFloat(localStorage.getItem(K_OUTLIER)||'2');
+const saveOutlierSD=()=>localStorage.setItem(K_OUTLIER,outlierSD);
 
 // ── UTILS ────────────────────────────────────────────────────────────────────
 const fmtP=(n,d=0)=>currencySymbol+Math.abs(n).toLocaleString('en-GB',{minimumFractionDigits:d,maximumFractionDigits:d});
@@ -999,11 +1017,7 @@ function renderTrends(){
   const used=[...usedSet];
   const cmap={};used.forEach((r,i)=>{const rx=reasons.find(x=>x.id===r);cmap[r]=rx?.colour||PALETTE[i%PALETTE.length];});
 
-  // Populate category dropdown (preserve selection)
-  const sel=document.getElementById('catTrendSel');
-  const prev=sel.value;
-  sel.innerHTML='<option value="">All categories</option>'+used.map(r=>`<option value="${r}">${rLabel(r)}</option>`).join('');
-  if(prev&&used.includes(prev))sel.value=prev;
+  // Populate category dropdown (preserve selection) — handled in drawCatTrend per type filter
 
   drawPie(cmap,used);
   drawStack(months,used,cmap);
@@ -1179,10 +1193,58 @@ function filterCatTrend(reasonId){
   renderTrends();
 }
 
+function setCatTrendType(val,btn){
+  const wrap=document.getElementById('catTrendTypeFilter');
+  if(!wrap)return;
+  wrap.dataset.value=val;
+  wrap.querySelectorAll('button').forEach(b=>{
+    const active=b===btn;
+    const isReg=val==='regular',isOO=val==='oneoff';
+    b.style.background=active?(isReg?'var(--regular)':isOO?'var(--oneoff)':'var(--accent)'):'var(--s2)';
+    b.style.borderColor=active?(isReg?'var(--regular)':isOO?'var(--oneoff)':'var(--accent)'):'var(--border)';
+    b.style.color=active?'#000':'var(--muted)';
+  });
+  // Reset specific category selection
+  document.getElementById('catTrendSel').value='';
+  renderTrends();
+}
+
+function setOutlierSD(){
+  const v=parseFloat(document.getElementById('outlierSDIn').value);
+  if(isNaN(v)||v<1||v>5)return;
+  outlierSD=v;
+  saveOutlierSD();
+  document.getElementById('outlierSDLabel').textContent=v+'σ';
+  renderTrends();
+}
+
+function renderOutlierSDInput(){
+  const inp=document.getElementById('outlierSDIn');
+  const lbl=document.getElementById('outlierSDLabel');
+  if(inp)inp.value=outlierSD;
+  if(lbl)lbl.textContent=outlierSD+'σ';
+}
+
 function drawCatTrend(months,used,cmap){
   const{ctx,W,H}=setupCanvas('catTrendChart',140);
   const filterR=document.getElementById('catTrendSel').value;
-  const toShow=filterR?[filterR]:used;
+  const typeFilter=document.getElementById('catTrendTypeFilter')?.dataset.value||'regular';
+
+  // Filter categories by type unless a specific category is selected
+  const typeFiltered=filterR?used:used.filter(r=>{
+    if(typeFilter==='all')return true;
+    const rx=reasons.find(x=>x.id===r);
+    return rx?.type===typeFilter;
+  });
+
+  const toShow=filterR?[filterR]:typeFiltered;
+
+  // Populate dropdown with type-filtered categories
+  const sel=document.getElementById('catTrendSel');
+  const prev=sel.value;
+  sel.innerHTML='<option value="">All</option>'+typeFiltered.map(r=>`<option value="${r}">${rLabel(r)}</option>`).join('');
+  if(prev&&typeFiltered.includes(prev))sel.value=prev;
+
   const pad={t:14,b:22,l:28,r:8};
   const cH=H-pad.t-pad.b;
 
@@ -1191,14 +1253,27 @@ function drawCatTrend(months,used,cmap){
     vals:months.map(m=>m.list.filter(t=>t.reason===r&&t.type!=='income').reduce((s,t)=>s+t.amount,0))
   }));
 
-  const allVals=data.flatMap(d=>d.vals);
-  const maxV=Math.max(...allVals,1);
-  const n=months.length;
+  const allVals=data.flatMap(d=>d.vals).filter(v=>v>0);
 
+  // Outlier-capped Y axis: exclude values > mean + outlierSD*SD, cap at 2.1× remaining mean
+  let maxV=1;
+  if(allVals.length){
+    const mean=allVals.reduce((a,b)=>a+b,0)/allVals.length;
+    const sd=Math.sqrt(allVals.reduce((a,b)=>a+(b-mean)**2,0)/allVals.length);
+    const threshold=mean+outlierSD*sd;
+    const nonOutliers=allVals.filter(v=>v<=threshold);
+    const nonOutlierMean=nonOutliers.length?nonOutliers.reduce((a,b)=>a+b,0)/nonOutliers.length:mean;
+    maxV=Math.max(nonOutlierMean*2.1,1);
+    // Never cap below the max non-outlier value
+    const maxNonOutlier=nonOutliers.length?Math.max(...nonOutliers):0;
+    maxV=Math.max(maxV,maxNonOutlier);
+  }
+
+  const n=months.length;
   drawYAxis(ctx,pad,H,0,maxV,W);
   const cW=W-pad.l-pad.r;
   function px(i){return pad.l+(i/Math.max(n-1,1))*cW;}
-  function py(v){return pad.t+cH-((v/maxV)*cH);}
+  function py(v){return pad.t+cH-((Math.min(v,maxV)/maxV)*cH);}
   ctx.strokeStyle='#2e2e45';ctx.lineWidth=1;ctx.setLineDash([3,4]);
   ctx.beginPath();ctx.moveTo(pad.l,pad.t+cH);ctx.lineTo(W-pad.r,pad.t+cH);ctx.stroke();ctx.setLineDash([]);
 
@@ -1208,14 +1283,24 @@ function drawCatTrend(months,used,cmap){
     ctx.beginPath();ctx.strokeStyle=color;ctx.lineWidth=2;
     vals.forEach((v,i)=>{i?ctx.lineTo(px(i),py(v)):ctx.moveTo(px(i),py(v));});ctx.stroke();
     vals.forEach((v,i)=>{
-      ctx.beginPath();ctx.arc(px(i),py(v),3,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();
+      const capped=v>maxV;
+      ctx.beginPath();ctx.arc(px(i),py(v),3,0,Math.PI*2);
+      ctx.fillStyle=capped?'#f87171':color;ctx.fill();
+      // Draw arrow if capped
+      if(capped){
+        ctx.save();
+        ctx.strokeStyle='#f87171';ctx.lineWidth=1.5;
+        const x=px(i),y=pad.t+4;
+        ctx.beginPath();ctx.moveTo(x,y+6);ctx.lineTo(x,y);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(x-3,y+3);ctx.lineTo(x,y);ctx.lineTo(x+3,y+3);ctx.stroke();
+        ctx.restore();
+      }
     });
   });
 
   ctx.fillStyle='#6b6b88';ctx.font='500 9px JetBrains Mono,monospace';ctx.textAlign='center';
   months.forEach((m,i)=>ctx.fillText(m.label,px(i),H-5));
 
-  // Legend
   const leg=document.getElementById('catTrendLegend');
   leg.innerHTML=data.filter(({vals})=>vals.some(v=>v>0)).map(({r})=>`
     <div style="display:flex;align-items:center;gap:4px;font-size:9px;color:var(--muted)">
@@ -2397,7 +2482,7 @@ function renderCatBudgetBar(reasonId){
   pctEl.textContent=fmtP2(spent)+' / '+fmtP2(budget);
   pctEl.style.color=pct>1?'#f87171':pct>=0.75?'#fb923c':'var(--muted)';
   document.getElementById('catBudgetFill').style.width=pctCapped/1.1*100+'%';
-  document.getElementById('catBudgetFill').style.background=budgetBarColour(Math.min(pct,1));
+  document.getElementById('catBudgetFill').style.background=budgetBarColour(pct);
   document.getElementById('catBudget100').style.left=w100+'%';
   wrap.style.display='block';
 }
@@ -3072,7 +3157,7 @@ function renderBudget(){
 
   // ── Total budget bar ──
   const totalPct=totalBudget>0?Math.min(totalSpent/totalBudget,1.08):0;
-  const totalColor=totalBudget>0?budgetBarColour(Math.min(totalSpent/totalBudget,1)):'#3a3a55';
+  const totalColor=totalBudget>0?budgetBarColour(totalSpent/totalBudget):'#3a3a55';
   const totalOver=totalBudget>0&&totalSpent>totalBudget;
   html+=`<div class="card" style="margin-bottom:12px;">
     <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">
@@ -3082,8 +3167,10 @@ function renderBudget(){
         <span style="font-size:10px;color:var(--muted);">of ${totalBudget>0?fmtP2(totalBudget):'no budget set'}</span>
       </div>
     </div>
-    <div style="background:#1a1a26;border-radius:6px;height:10px;overflow:hidden;position:relative;">
-      ${totalBudget>0?`<div style="height:100%;width:${Math.min(totalPct*100,108)}%;background:${totalColor};border-radius:6px;transition:width .3s;"></div>`:'<div style="height:100%;width:0;"></div>'}
+    <div style="background:#1a1a26;border-radius:6px;height:10px;position:relative;">
+      ${totalBudget>0?`<div style="height:100%;width:${Math.min(totalSpent/totalBudget/1.1,1)*100}%;background:${totalColor};border-radius:6px;transition:width .3s;overflow:hidden;"></div>
+      <div style="position:absolute;top:0;bottom:0;left:calc(100%/1.1*0.75);width:1px;background:rgba(251,146,60,0.5);pointer-events:none;"></div>
+      <div style="position:absolute;top:-1px;bottom:-1px;left:calc(100%/1.1);width:2px;background:rgba(255,255,255,0.3);pointer-events:none;"></div>`:'<div style="height:100%;width:0;"></div>'}
     </div>
     ${totalBudget>0?`<div style="display:flex;justify-content:space-between;margin-top:5px;">
       <span style="font-size:9px;color:var(--muted);">${Math.round((totalSpent/totalBudget)*100)}% used</span>
@@ -3145,22 +3232,17 @@ function renderBudget(){
 }
 
 function budgetBarColour(pct){
-  // Stays green until 65%, then yellow → red by 100%
-  const p=Math.min(pct,1);
-  if(p<0.65){
-    return'#4ade80'; // solid green below 65%
-  } else {
-    const t=(p-0.65)/0.35; // normalise 0.65→1.0 to 0→1
-    if(t<0.5){
-      // green to yellow
-      const r=Math.round(t*2*255);
-      return`rgb(${r},220,80)`;
-    } else {
-      // yellow to red
-      const g=Math.round((1-(t-0.5)*2)*220);
-      return`rgb(255,${Math.max(g,40)},40)`;
-    }
+  if(pct>1) return'#f87171';               // over budget — red
+  if(pct<0.85) return'#4ade80';            // under 85% — green
+  if(pct<0.95){                            // 85–95% — green to yellow
+    const t=(pct-0.85)/0.10;
+    const r=Math.round(t*255);
+    return`rgb(${r},220,80)`;
   }
+  // 95–100% — yellow to orange-red
+  const t=(pct-0.95)/0.05;
+  const g=Math.round((1-t)*180);
+  return`rgb(255,${Math.max(g,80)},40)`;
 }
 
 function drawBudgetChart(sorted,totalBudget,totalSpent){
@@ -3181,7 +3263,7 @@ function drawBudgetChart(sorted,totalBudget,totalSpent){
   const CHART_MAX=1.1;
   const pad={t:14,b:4,l:72,r:32};
   const plotW=W-pad.l-pad.r;
-  const w100=plotW/CHART_MAX; // px width = 100% of budget
+  const w100=plotW/CHART_MAX;
 
   // Vertical grid lines at 0, 75, 100 only
   [{pct:0,col:'rgba(46,46,69,0.5)',dash:[],lw:0.5},
@@ -3206,7 +3288,6 @@ function drawBudgetChart(sorted,totalBudget,totalSpent){
     const pct=hasBudget?item.spent/item.budget:0;
     const pctCapped=Math.min(pct,CHART_MAX);
     const color=hasBudget?budgetBarColour(pct):'#3a3a55';
-
     // Label left
     const label=item.label.length>8?item.label.slice(0,7)+'…':item.label;
     ctx.textBaseline='middle';ctx.font='500 9px JetBrains Mono,monospace';
@@ -3299,21 +3380,20 @@ function renderBudgetMiniBar(){
   const pct=totalSpent/totalBudget;
   const fill=document.getElementById('budgetMiniBarFill');
   fill.style.width=Math.min(pct/1.1,1)*100+'%';
-  // Pace-based colour — only meaningful for current month
   const now=new Date();
   const isCurMonth=now.getFullYear()===viewMonth.getFullYear()&&now.getMonth()===viewMonth.getMonth();
   let fillColour;
   if(isCurMonth){
     const dim=new Date(viewMonth.getFullYear(),viewMonth.getMonth()+1,0).getDate();
-    const pacePct=now.getDate()/dim; // how far through month
-    const ratio=pct/pacePct;        // spend ratio vs pace (1.0 = exactly on pace)
-    if(ratio<0.85)fillColour='#4ade80';          // green — under pace
-    else if(ratio<1.1)fillColour='#facc15';      // yellow — on pace / slightly over
-    else if(ratio<1.3)fillColour='#fb923c';      // orange — noticeably over
-    else fillColour='#f87171';                   // red — very over
+    const dom=now.getDate();
+    const pacePct=dom/dim;
+    const ratio=pct/pacePct;
+    if(ratio<=1.0)fillColour='#4ade80';       // under pace — green
+    else if(ratio<1.05)fillColour='#facc15';  // up to 5% over pace — yellow
+    else fillColour='#f87171';                // >5% over pace — red
   } else {
-    // Past/future month — just use spend vs budget
-    fillColour=budgetBarColour(Math.min(pct,1));
+    // Past month — binary: made it = green, over = red
+    fillColour=pct<=1?'#4ade80':'#f87171';
   }
   fill.style.background=fillColour;
   // Pace marker + daily budget — only for the current month
