@@ -670,7 +670,7 @@ canvas{display:block;}
   <div class="sheet">
     <div class="s-handle"></div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-      <div class="s-title display" id="optionsTitle" style="margin-bottom:0;cursor:default;user-select:none;">Options</div>
+      <div class="s-title display" id="optionsTitle" style="margin-bottom:0;cursor:default;user-select:none;">Options <span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:400;color:var(--dim);letter-spacing:.05em;">v3.1.1</span></div>
       <button onclick="deleteAllData()" style="background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.3);border-radius:8px;color:var(--danger);font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;padding:6px 12px;cursor:pointer;">Delete all data</button>
     </div>
     <div class="fg" style="margin-bottom:20px;">
@@ -3157,7 +3157,9 @@ function renderBudget(){
 
   // ── Total budget bar ──
   const totalPct=totalBudget>0?Math.min(totalSpent/totalBudget,1.08):0;
-  const totalColor=totalBudget>0?budgetBarColour(totalSpent/totalBudget):'#3a3a55';
+  const now3=new Date();
+  const isCurMonthBudget=now3.getFullYear()===viewMonth.getFullYear()&&now3.getMonth()===viewMonth.getMonth();
+  const totalColor=totalBudget>0?(isCurMonthBudget?budgetBarColour(totalSpent/totalBudget):totalSpent<=totalBudget?'#4ade80':'#f87171'):'#3a3a55';
   const totalOver=totalBudget>0&&totalSpent>totalBudget;
   html+=`<div class="card" style="margin-bottom:12px;">
     <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">
@@ -3287,7 +3289,9 @@ function drawBudgetChart(sorted,totalBudget,totalSpent){
     const hasBudget=item.budget>0;
     const pct=hasBudget?item.spent/item.budget:0;
     const pctCapped=Math.min(pct,CHART_MAX);
-    const color=hasBudget?budgetBarColour(pct):'#3a3a55';
+    const now=new Date();
+    const isCurMonth=now.getFullYear()===viewMonth.getFullYear()&&now.getMonth()===viewMonth.getMonth();
+    const color=hasBudget?(isCurMonth?budgetBarColour(pct):pct<=1?'#4ade80':'#f87171'):'#3a3a55';
     // Label left
     const label=item.label.length>8?item.label.slice(0,7)+'…':item.label;
     ctx.textBaseline='middle';ctx.font='500 9px JetBrains Mono,monospace';
@@ -3343,7 +3347,7 @@ function drawBudgetChart(sorted,totalBudget,totalSpent){
     // % label right
     if(hasBudget){
       const isOver=pct>1;
-      ctx.fillStyle=isOver?'#f87171':pct>=0.75?budgetBarColour(pct):'#6b6b88';
+      ctx.fillStyle=isOver?'#f87171':isCurMonth?(pct>=0.85?budgetBarColour(pct):'#6b6b88'):'#4ade80';
       ctx.font=`${isOver?'700':'600'} 9px JetBrains Mono,monospace`;
       ctx.textAlign='left';ctx.textBaseline='middle';
       ctx.fillText((isOver?'+':'')+Math.round(pct*100)+'%',pad.l+plotW+4,y);
